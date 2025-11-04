@@ -1,0 +1,21 @@
+# Compiled files
+dist/
+*.js
+*.js.map
+
+# Log files
+logs/
+*.log
+
+# Dependencies
+node_modules/
+
+# npm
+npm-debug.log*
+.npm
+
+# Build files
+*.tsbuildinfo
+
+# Test files
+test-project/

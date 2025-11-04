@@ -1,0 +1,11 @@
+term,category,priority
+javascript,programming,high
+python,programming,high
+react,frontend,medium
+nodejs,backend,medium
+docker,devops,high
+kubernetes,devops,high
+mongodb,database,medium
+postgresql,database,high
+redis,cache,medium
+elasticsearch,search,high

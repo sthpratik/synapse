@@ -1,0 +1,38 @@
+name: "API Load Test with Array Parameters"
+description: "Test API endpoints with various parameter types including arrays"
+baseUrl: "https://jsonplaceholder.typicode.com/posts"
+
+execution:
+  mode: "construct"
+  concurrent: 5
+  iterations: 20
+
+parameters:
+  - name: "userId"
+    type: "integer"
+    min: 1
+    max: 10
+  
+  - name: "category"
+    type: "array"
+    values: ["technology", "business", "health", "sports", "entertainment"]
+  
+  - name: "format"
+    type: "array"
+    values: ["json", "xml"]
+  
+  - name: "sessionId"
+    type: "string"
+    length: 16
+    charset: "alphanumeric"
+
+k6Options:
+  thresholds:
+    http_req_duration: ["p(95)<500"]
+    http_req_failed: ["rate<0.1"]
+
+request:
+  method: "GET"
+  headers:
+    "User-Agent": "Synapse Load Tester"
+    "Accept": "application/json"
