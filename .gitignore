@@ -1,7 +1,6 @@
 # Compiled files
 dist/
-*.js
-*.js.map
+
 
 # Log files
 logs/
