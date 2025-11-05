@@ -1,5 +1,6 @@
 # Compiled files
 dist/
+dist/*.js
 
 
 # Log files
@@ -8,7 +9,7 @@ logs/
 
 # Dependencies
 node_modules/
-
+node_modules/*.js
 # npm
 npm-debug.log*
 .npm
