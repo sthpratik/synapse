@@ -112,6 +112,11 @@ function constructUrl() {
   // ${param.name}: csv parameter (loaded from ${param.file})
   const ${param.name} = ${param.name}Data[Math.floor(Math.random() * ${param.name}Data.length)];`;
         
+        case 'static':
+          return `
+  // ${param.name}: static parameter
+  const ${param.name} = ${JSON.stringify(param.value)};`;
+        
         default:
           return `  const ${param.name} = 'default';`;
       }
@@ -133,12 +138,17 @@ ${csvDataLoaders.join('\n')}
 function constructUrl() {
 ${parameterGenerators}
   
-  const url = new URL('${this.config.baseUrl}');
+  let url = '${this.config.baseUrl}';
+  const params = [];
 ${this.config.parameters.map(param => 
-  `  url.searchParams.append('${param.name}', ${param.name});`
+  `  params.push('${param.name}=' + encodeURIComponent(${param.name}));`
 ).join('\n')}
   
-  return url.toString();
+  if (params.length > 0) {
+    url += '?' + params.join('&');
+  }
+  
+  return url;
 }`;
   }
 

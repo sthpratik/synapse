@@ -31,7 +31,7 @@ export interface Stage {
 
 export interface Parameter {
   name: string;
-  type: 'integer' | 'string' | 'array' | 'csv' | 'url';
+  type: 'integer' | 'string' | 'array' | 'csv' | 'url' | 'static';
   // Integer specific
   min?: number;
   max?: number;
@@ -44,7 +44,9 @@ export interface Parameter {
   // CSV/URL specific
   file?: string;
   column?: string;
-  encoding?: 'base64' | 'url';
+  encoding?: 'base64';
+  // Static specific
+  value?: string | number;
   // Common
   unique?: boolean;
 }

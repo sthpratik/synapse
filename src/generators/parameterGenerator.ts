@@ -5,6 +5,23 @@ import csv from 'csv-parser';
 export class ParameterGenerator {
   private csvCache: Map<string, any[]> = new Map();
 
+  private shouldEncodeValue(value: string): boolean {
+    // Check if value looks like a URL that needs encoding
+    try {
+      const url = new URL(value);
+      // If it's a valid URL and contains special characters, it should be encoded
+      return value !== encodeURIComponent(value);
+    } catch {
+      // Not a URL, check for other patterns that need encoding
+      return /[^a-zA-Z0-9\-._~]/.test(value);
+    }
+  }
+
+  private autoEncode(value: string | number): string {
+    const strValue = value.toString();
+    return this.shouldEncodeValue(strValue) ? encodeURIComponent(strValue) : strValue;
+  }
+
   async generateParameter(param: Parameter): Promise<string | number> {
     switch (param.type) {
       case 'integer':
@@ -17,6 +34,8 @@ export class ParameterGenerator {
         return await this.generateFromCsv(param);
       case 'url':
         return await this.generateUrl(param);
+      case 'static':
+        return this.generateStatic(param);
       default:
         throw new Error(`Unsupported parameter type: ${param.type}`);
     }
@@ -72,19 +91,25 @@ export class ParameterGenerator {
       throw new Error(`Column '${param.column}' not found in CSV file: ${param.file}`);
     }
     
-    return value.toString();
+    return this.autoEncode(value);
   }
 
   private async generateUrl(param: Parameter): Promise<string> {
     const url = await this.generateFromCsv(param);
     
+    // Auto-encoding is already applied in generateFromCsv
     if (param.encoding === 'base64') {
       return Buffer.from(url).toString('base64');
-    } else if (param.encoding === 'url') {
-      return encodeURIComponent(url);
     }
     
     return url;
+  }
+
+  private generateStatic(param: Parameter): string | number {
+    if (param.value === undefined) {
+      throw new Error(`Static parameter '${param.name}' must have value defined`);
+    }
+    return this.autoEncode(param.value);
   }
 
   private async loadCsvData(filePath: string): Promise<any[]> {

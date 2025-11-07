@@ -35,7 +35,7 @@ export class ConfigValidator {
   private createSchema(): Joi.ObjectSchema {
     const parameterSchema = Joi.object({
       name: Joi.string().required(),
-      type: Joi.string().valid('integer', 'string', 'array', 'csv', 'url').required(),
+      type: Joi.string().valid('integer', 'string', 'array', 'csv', 'url', 'static').required(),
       // Integer specific
       min: Joi.number().when('type', { is: 'integer', then: Joi.optional() }),
       max: Joi.number().when('type', { is: 'integer', then: Joi.optional() }),
@@ -48,7 +48,9 @@ export class ConfigValidator {
       // CSV/URL specific
       file: Joi.string().when('type', { is: Joi.valid('csv', 'url'), then: Joi.required() }),
       column: Joi.string().when('type', { is: Joi.valid('csv', 'url'), then: Joi.required() }),
-      encoding: Joi.string().valid('base64', 'url').when('type', { is: 'url', then: Joi.optional() }),
+      encoding: Joi.string().valid('base64').when('type', { is: 'url', then: Joi.optional() }),
+      // Static specific
+      value: Joi.alternatives().try(Joi.string(), Joi.number()).when('type', { is: 'static', then: Joi.required() }),
       // Common
       unique: Joi.boolean().optional()
     });
@@ -106,6 +108,10 @@ export class ConfigValidator {
 
         if (param.type === 'integer' && param.min !== undefined && param.max !== undefined && param.min > param.max) {
           throw new Error(`Invalid range for parameter '${param.name}': min (${param.min}) > max (${param.max})`);
+        }
+
+        if (param.type === 'static' && param.value === undefined) {
+          throw new Error(`Static parameter '${param.name}' must have value defined`);
         }
       }
     }

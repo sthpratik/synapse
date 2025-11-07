@@ -65,15 +65,23 @@ execution:
 parameters:
   - name: "query"
     type: "array"
-    values: ["javascript", "python", "react"]
+    values: ["javascript", "python", "react & vue"]
   - name: "userId"
     type: "integer"
     min: 1000
     max: 9999
+  - name: "imageUrl"
+    type: "static"
+    value: "http://localhost:7900/generated-content/imagen-3_0-generate-002/2025-11-05/imagen.webp"
 k6Options:
   thresholds:
     http_req_duration: ["p(95)<500"]
 ```
+
+**Auto-encoding in action:**
+- `"react & vue"` → `"react%20%26%20vue"`
+- Complex image URL → Automatically URL-encoded
+- `userId` numbers → No encoding needed
 
 ### 3. Run Load Test
 
@@ -82,6 +90,29 @@ synapse run
 ```
 
 ## 📋 Parameter Types
+
+**Auto-Encoding:** Static and CSV parameters automatically detect and URL-encode special characters and URLs. No manual encoding configuration needed for standard URL encoding.
+
+### Static Parameters ⭐ NEW
+Use fixed values with smart auto-encoding for URLs and special characters:
+
+```yaml
+- name: "imageUrl"
+  type: "static"
+  value: "http://localhost:7900/generated-content/imagen-3_0-generate-002/2025-11-05/imagen-1762381001933-3b19cf6c.webp"
+- name: "apiKey"
+  type: "static"
+  value: "your-api-key-here"
+- name: "searchQuery"
+  type: "static"
+  value: "hello world & special chars!"
+```
+
+**Auto-encoding behavior:**
+- URLs are automatically URL-encoded when needed
+- Special characters (`&`, `!`, spaces, etc.) are encoded
+- Simple strings (like API keys) remain unchanged
+- No configuration required
 
 ### Integer Parameters
 Generate random integers within a specified range:
@@ -106,17 +137,23 @@ Generate random strings with various character sets:
 ```
 
 ### Array Parameters ⭐ NEW
-Select random values from a predefined array:
+Select random values from a predefined array with auto-encoding:
 
 ```yaml
 - name: "category"
   type: "array"
-  values: ["electronics", "books", "clothing", "home"]
+  values: ["electronics", "books & media", "home & garden"]
   unique: true  # optional: ensure no duplicates
+- name: "testUrls"
+  type: "array"
+  values: [
+    "http://localhost:3000/api/test?param=value",
+    "https://example.com/search?q=hello world"
+  ]
 ```
 
 ### CSV Parameters
-Load values from CSV files:
+Load values from CSV files with smart auto-encoding:
 
 ```yaml
 - name: "region"
@@ -126,14 +163,63 @@ Load values from CSV files:
 ```
 
 ### URL Parameters
-Load and optionally encode URLs:
+Load URLs with automatic encoding and optional base64:
 
 ```yaml
-- name: "encodedUrl"
+- name: "targetUrl"
   type: "url"
   file: "./data/urls.csv"
   column: "url"
-  encoding: "base64"  # optional
+  encoding: "base64"  # Optional: only for base64 encoding
+```
+
+**Note:** URL encoding is automatic. Only specify `encoding: "base64"` when you need base64 encoding specifically.
+
+## 🔄 Auto-Encoding Examples
+
+**Static Parameters:**
+```yaml
+# Input
+- name: "imageUrl"
+  type: "static"
+  value: "http://localhost:7900/generated-content/imagen-3_0-generate-002/2025-11-05/imagen.webp"
+
+# Output: Automatically encoded
+# http%3A//localhost%3A7900/generated-content/imagen-3_0-generate-002/2025-11-05/imagen.webp
+```
+
+**Array Parameters:**
+```yaml
+# Input
+- name: "searchTerm"
+  type: "array"
+  values: ["hello world", "cats & dogs", "simple-text"]
+
+# Output: Smart encoding
+# "hello world" → "hello%20world"
+# "cats & dogs" → "cats%20%26%20dogs"  
+# "simple-text" → "simple-text" (unchanged)
+```
+
+**CSV Data:**
+```csv
+# urls.csv
+url
+http://localhost:3000/api/test?param=value&other=data
+https://example.com/search?q=hello world
+simple-endpoint
+```
+
+```yaml
+# Configuration
+- name: "endpoint"
+  type: "csv"
+  file: "./urls.csv"
+  column: "url"
+
+# Output: Auto-encoded when needed
+# Complex URLs → Encoded
+# Simple strings → Unchanged
 ```
 
 ## 🔧 CLI Commands
