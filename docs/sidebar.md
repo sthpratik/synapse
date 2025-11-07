@@ -1,6 +1,6 @@
 * [Home](/)
-* [Getting Started](getting-started.md)
 * [K6 Installation](k6-installation.md)
+* [Getting Started](getting-started.md)
 * [Configuration Schema](config-schema.md)
 * [Parameter Types](parameter-types.md)
 * [Examples](examples.md)

@@ -1,5 +1,20 @@
 # Examples
 
+## Quick Test (No Configuration)
+
+For immediate testing without creating YAML files:
+
+```bash
+# Basic load test
+synapse test --url "https://api.example.com/users" --concurrent 5 --requests 50
+
+# Higher load test
+synapse test --url "https://api.example.com" --concurrent 20 --requests 500
+
+# Test with dry run
+synapse test --url "https://httpbin.org/get" --concurrent 10 --requests 100 --dry-run
+```
+
 ## Basic API Test
 
 ```yaml

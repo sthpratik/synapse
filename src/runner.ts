@@ -13,6 +13,15 @@ export interface RunOptions {
   keepScript?: boolean;
 }
 
+export interface SimpleTestOptions {
+  url: string;
+  concurrent: number;
+  requests: number;
+  outputDir: string;
+  dryRun?: boolean;
+  keepScript?: boolean;
+}
+
 export class SynapseRunner {
   private validator: ConfigValidator;
 
@@ -57,6 +66,44 @@ export class SynapseRunner {
     const script = await generator.generateK6Script();
     
     fs.writeFileSync(outputPath, script);
+  }
+
+  async runSimpleTest(options: SimpleTestOptions): Promise<void> {
+    console.log(chalk.blue('📋 Creating simple test configuration...'));
+    
+    const config: SynapseConfig = {
+      name: 'Simple Load Test',
+      baseUrl: options.url,
+      execution: {
+        mode: 'construct',
+        concurrent: options.concurrent,
+        iterations: options.requests
+      },
+      request: {
+        method: 'GET'
+      }
+    };
+
+    console.log(chalk.blue('🔧 Generating K6 script...'));
+    const scriptPath = await this.generateK6Script(config, options.outputDir);
+    
+    if (options.dryRun) {
+      console.log(chalk.yellow('🏃 Dry run mode - K6 script generated but not executed'));
+      console.log(chalk.blue(`📄 Script location: ${scriptPath}`));
+      return;
+    }
+    
+    console.log(chalk.blue('🚀 Running K6 load test...'));
+    await this.runK6Test(scriptPath, options.outputDir);
+    
+    if (!options.keepScript) {
+      fs.unlinkSync(scriptPath);
+      console.log(chalk.gray('🗑️  Cleaned up generated script'));
+    } else {
+      console.log(chalk.blue(`📄 K6 script saved: ${scriptPath}`));
+    }
+    
+    console.log(chalk.green('✅ Load test completed!'));
   }
 
   private async loadConfig(configPath: string): Promise<SynapseConfig> {

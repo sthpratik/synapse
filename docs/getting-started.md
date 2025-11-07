@@ -23,6 +23,21 @@ synapse --help
 
 ## Quick Start
 
+### Simple Load Test (No Configuration)
+
+For immediate testing without creating configuration files:
+
+```bash
+synapse test --url "https://jsonplaceholder.typicode.com/posts" --concurrent 10 --requests 100
+```
+
+This command will:
+- Generate a basic K6 script
+- Run 100 requests with 10 concurrent users
+- Display results immediately
+
+### Advanced Configuration
+
 ### 1. Initialize a Project
 
 Create a new load test configuration:
@@ -95,6 +110,9 @@ Synapse will show K6 output including:
 ## Common Commands
 
 ```bash
+# Quick test without configuration
+synapse test --url "https://api.example.com" --concurrent 5 --requests 50
+
 # Validate configuration
 synapse validate
 

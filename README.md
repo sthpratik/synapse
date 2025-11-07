@@ -32,6 +32,16 @@ npx synapse --help
 
 ## 🏃 Quick Start
 
+### Simple Load Test (No Configuration File)
+
+For quick testing without creating a YAML file:
+
+```bash
+synapse test --url "https://api.example.com" --concurrent 10 --requests 100
+```
+
+### Advanced Configuration
+
 ### 1. Initialize Configuration
 
 ```bash
@@ -126,6 +136,21 @@ Load and optionally encode URLs:
 ```
 
 ## 🔧 CLI Commands
+
+### `synapse test`
+Run simple load test without configuration file:
+
+```bash
+synapse test --url "https://api.example.com" --concurrent 10 --requests 100
+```
+
+Options:
+- `-u, --url <url>` - Target URL to test (required)
+- `-c, --concurrent <number>` - Number of concurrent users (required)
+- `-r, --requests <number>` - Total number of requests (required)
+- `-o, --output <path>` - Output directory (default: ./output)
+- `--dry-run` - Generate script without running
+- `--keep-script` - Keep generated K6 script
 
 ### `synapse run`
 Run load test from configuration:

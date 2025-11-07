@@ -8,6 +8,34 @@ npm install -g synapse
 
 ## Commands
 
+### `synapse test`
+
+Run simple load test without configuration file.
+
+```bash
+synapse test [options]
+```
+
+**Options:**
+- `-u, --url <url>` - Target URL to test (required)
+- `-c, --concurrent <number>` - Number of concurrent users (required)
+- `-r, --requests <number>` - Total number of requests (required)
+- `-o, --output <path>` - Output directory (default: ./output)
+- `--dry-run` - Generate script without running
+- `--keep-script` - Keep generated K6 script
+
+**Examples:**
+```bash
+# Basic load test
+synapse test --url "https://api.example.com" --concurrent 10 --requests 100
+
+# With custom output directory
+synapse test -u "https://api.example.com" -c 5 -r 50 -o ./results
+
+# Dry run to see generated script
+synapse test --url "https://api.example.com" --concurrent 10 --requests 100 --dry-run
+```
+
 ### `synapse init`
 
 Initialize a new Synapse configuration file.

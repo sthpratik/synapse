@@ -22,13 +22,21 @@ Synapse is a powerful command-line tool that generates K6 load testing scripts f
 npm install -g synapse-load-tester
 ```
 
-### Initialize Configuration
+### Simple Load Test (No Configuration)
+
+```bash
+synapse test --url "https://api.example.com" --concurrent 10 --requests 100
+```
+
+### Advanced Configuration
+
+Initialize configuration:
 
 ```bash
 synapse init --name "My API Test" --url "https://api.example.com"
 ```
 
-### Run Load Test
+Run load test:
 
 ```bash
 synapse run --config synapse.yml

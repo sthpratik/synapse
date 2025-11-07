@@ -123,4 +123,33 @@ program
     }
   });
 
+program
+  .command('test')
+  .description('Run simple load test without configuration file')
+  .requiredOption('-u, --url <url>', 'Target URL to test')
+  .requiredOption('-c, --concurrent <number>', 'Number of concurrent users')
+  .requiredOption('-r, --requests <number>', 'Total number of requests')
+  .option('-o, --output <path>', 'Output directory for results', './output')
+  .option('--dry-run', 'Generate K6 script without running the test')
+  .option('--keep-script', 'Keep generated K6 script after test completion')
+  .action(async (options) => {
+    try {
+      console.log(chalk.blue('🔄 Starting Simple Load Test...'));
+      
+      const runner = new SynapseRunner();
+      await runner.runSimpleTest({
+        url: options.url,
+        concurrent: parseInt(options.concurrent),
+        requests: parseInt(options.requests),
+        outputDir: options.output,
+        dryRun: options.dryRun,
+        keepScript: options.keepScript
+      });
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
 program.parse();
