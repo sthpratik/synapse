@@ -9,7 +9,7 @@ const package = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
 const version = package.version;
 
 // Read coverpage template
-const coverpagePath = path.join(__dirname, '../docs/_coverpage.md');
+const coverpagePath = path.join(__dirname, '../docs/cover.md');
 let coverpage = fs.readFileSync(coverpagePath, 'utf8');
 
 // Update version in coverpage
