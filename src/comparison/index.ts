@@ -2,11 +2,19 @@ import https from 'https';
 import http from 'http';
 import sharp from 'sharp';
 import pixelmatch from 'pixelmatch';
+import { Screenshotter } from './screenshotter.js';
 
 export interface ComparisonConfig {
-  type: 'image' | 'text';
+  type: 'image' | 'text' | 'screenshot' | 'visual-text';
   timeout?: number;
   threshold?: number;
+  screenshot?: {
+    viewport?: { width: number; height: number };
+    waitUntil?: 'load' | 'networkidle';
+    timeout?: number;
+  };
+  saveScreenshots?: boolean;
+  outputDir?: string;
 }
 
 export interface ComparisonResult {
@@ -23,12 +31,19 @@ export interface ComparisonResult {
   diffPixels?: number;
   similarity?: number;
   textMatch?: boolean;
+  textSimilarity?: number;
+  screenshotSimilarity?: number;
+  screenshotDiffPixels?: number;
+  visualTextPassed?: boolean;
+  screenshot1Path?: string;
+  screenshot2Path?: string;
   error?: string;
   errorDetails?: string;
 }
 
 export class Comparator {
   private config: ComparisonConfig;
+  private screenshotter: Screenshotter;
 
   constructor(config: ComparisonConfig = { type: 'image' }) {
     this.config = {
@@ -36,12 +51,25 @@ export class Comparator {
       threshold: 0.1,
       ...config
     };
+    this.screenshotter = new Screenshotter(
+      config.screenshot, 
+      config.saveScreenshots || false,
+      config.outputDir
+    );
   }
 
   async compare(url1: string, url2: string): Promise<ComparisonResult> {
     const startTime = Date.now();
     
     try {
+      if (this.config.type === 'screenshot') {
+        return await this.compareScreenshots(url1, url2, startTime);
+      }
+
+      if (this.config.type === 'visual-text') {
+        return await this.compareVisualText(url1, url2, startTime);
+      }
+
       const [response1, response2] = await Promise.all([
         this.fetchContent(url1),
         this.fetchContent(url2)
@@ -209,5 +237,128 @@ export class Comparator {
       textMatch,
       similarity: textMatch ? 100 : 0
     };
+  }
+
+  private async compareScreenshots(url1: string, url2: string, startTime: number): Promise<ComparisonResult> {
+    try {
+      const result = await this.screenshotter.captureScreenshots(url1, url2);
+      const responseTime = Date.now() - startTime;
+
+      if (!result.success) {
+        return {
+          success: false,
+          responseTime,
+          url1Status: 0,
+          url2Status: 0,
+          error: 'Screenshot capture failed',
+          errorDetails: result.error
+        };
+      }
+
+      const imageResult = await this.compareImages(
+        result.screenshot1,
+        result.screenshot2,
+        responseTime,
+        200,
+        200
+      );
+
+      return {
+        ...imageResult,
+        screenshotSimilarity: imageResult.similarity,
+        screenshotDiffPixels: imageResult.diffPixels,
+        screenshot1Path: result.savedPaths?.path1,
+        screenshot2Path: result.savedPaths?.path2
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        responseTime: Date.now() - startTime,
+        url1Status: 0,
+        url2Status: 0,
+        error: 'Screenshot comparison failed',
+        errorDetails: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
+  private async compareVisualText(url1: string, url2: string, startTime: number): Promise<ComparisonResult> {
+    try {
+      // Fetch text content
+      const [response1, response2] = await Promise.all([
+        this.fetchContent(url1),
+        this.fetchContent(url2)
+      ]);
+
+      const fetchTime = Date.now() - startTime;
+
+      if (!response1.success || !response2.success) {
+        return {
+          success: false,
+          responseTime: fetchTime,
+          url1Status: response1.status,
+          url2Status: response2.status,
+          error: 'Failed to fetch content for visual-text comparison',
+          errorDetails: `URL1: ${response1.error || 'OK'}, URL2: ${response2.error || 'OK'}`
+        };
+      }
+
+      // Compare text
+      const textResult = this.compareText(response1.data!, response2.data!, fetchTime, response1.status, response2.status);
+
+      // Capture and compare screenshots
+      const screenshotResult = await this.screenshotter.captureScreenshots(url1, url2);
+      const totalTime = Date.now() - startTime;
+
+      if (!screenshotResult.success) {
+        return {
+          ...textResult,
+          responseTime: totalTime,
+          error: 'Screenshot capture failed in visual-text mode',
+          errorDetails: screenshotResult.error
+        };
+      }
+
+      const imageResult = await this.compareImages(
+        screenshotResult.screenshot1,
+        screenshotResult.screenshot2,
+        totalTime,
+        200,
+        200
+      );
+
+      const visualTextPassed = textResult.textMatch && (imageResult.similarity || 0) >= (100 - (this.config.threshold || 0.1) * 100);
+
+      return {
+        success: true,
+        responseTime: totalTime,
+        url1Status: response1.status,
+        url2Status: response2.status,
+        url1Size: response1.data!.length,
+        url2Size: response2.data!.length,
+        textMatch: textResult.textMatch,
+        textSimilarity: textResult.similarity,
+        width1: imageResult.width1,
+        height1: imageResult.height1,
+        width2: imageResult.width2,
+        height2: imageResult.height2,
+        screenshotSimilarity: imageResult.similarity,
+        screenshotDiffPixels: imageResult.diffPixels,
+        visualTextPassed,
+        screenshot1Path: screenshotResult.savedPaths?.path1,
+        screenshot2Path: screenshotResult.savedPaths?.path2
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        responseTime: Date.now() - startTime,
+        url1Status: 0,
+        url2Status: 0,
+        error: 'Visual-text comparison failed',
+        errorDetails: error instanceof Error ? error.message : String(error)
+      };
+    }
   }
 }

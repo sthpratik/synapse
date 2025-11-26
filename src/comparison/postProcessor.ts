@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Comparator, ComparisonResult } from './index.js';
+import { Comparator, ComparisonResult, ComparisonConfig } from './index.js';
 
 interface K6ComparisonResult {
   iteration: number;
@@ -24,8 +24,8 @@ interface DetailedComparisonResult extends K6ComparisonResult {
 export class ComparisonPostProcessor {
   private comparator: Comparator;
 
-  constructor(type: 'image' | 'text', threshold?: number) {
-    this.comparator = new Comparator({ type, threshold });
+  constructor(config: ComparisonConfig) {
+    this.comparator = new Comparator(config);
   }
 
   async processResults(resultsPath: string, outputDir: string): Promise<void> {
@@ -93,7 +93,8 @@ export class ComparisonPostProcessor {
       'URL1_Size', 'URL2_Size', 'LoadTest_SizeMatch', 'LoadTest_Similarity%', 
       'Pixelmatch_Success', 'Pixelmatch_ResponseTime(ms)', 'Image_Width1', 'Image_Height1', 
       'Image_Width2', 'Image_Height2', 'Pixelmatch_DiffPixels', 'Pixelmatch_Similarity%', 
-      'TextMatch', 'Error', 'ErrorDetails', 'Timestamp'
+      'TextMatch', 'TextSimilarity%', 'ScreenshotSimilarity%', 'ScreenshotDiffPixels', 
+      'VisualTextPassed', 'Screenshot1', 'Screenshot2', 'Error', 'ErrorDetails', 'Timestamp'
     ].join(',') + '\n';
 
     const rows = results.map(r => {
@@ -118,6 +119,12 @@ export class ComparisonPostProcessor {
         d?.diffPixels || '',
         d?.similarity || '',
         d?.textMatch || '',
+        d?.textSimilarity || '',
+        d?.screenshotSimilarity || '',
+        d?.screenshotDiffPixels || '',
+        d?.visualTextPassed || '',
+        `"${d?.screenshot1Path || ''}"`,
+        `"${d?.screenshot2Path || ''}"`,
         `"${d?.error || ''}"`,
         `"${d?.errorDetails || ''}"`,
         r.timestamp

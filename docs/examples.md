@@ -1,201 +1,405 @@
 # Examples
 
-## Quick Test (No Configuration)
+Real-world examples for common use cases.
 
-For immediate testing without creating YAML files:
-
-```bash
-# Basic load test
-synapse test --url "https://api.example.com/users" --concurrent 5 --requests 50
-
-# Higher load test
-synapse test --url "https://api.example.com" --concurrent 20 --requests 500
-
-# Test with dry run
-synapse test --url "https://httpbin.org/get" --concurrent 10 --requests 100 --dry-run
-```
-
-## Basic API Test
+## Basic Load Test
 
 ```yaml
-name: "Basic API Test"
-baseUrl: "https://api.example.com/users"
-execution:
-  mode: "construct"
-  concurrent: 5
-  iterations: 50
-parameters:
-  - name: "userId"
-    type: "integer"
-    min: 1
-    max: 1000
-```
+name: "Simple API Test"
+baseUrl: "https://api.example.com"
 
-## E-commerce Load Test
-
-```yaml
-name: "E-commerce Load Test"
-baseUrl: "https://shop.example.com/products"
-execution:
-  mode: "construct"
-  concurrent: 20
-  duration: "5m"
-parameters:
-  - name: "category"
-    type: "array"
-    values: ["electronics", "books", "clothing"]
-  - name: "page"
-    type: "integer"
-    min: 1
-    max: 10
-k6Options:
-  stages:
-    - duration: "1m"
-      target: 10
-    - duration: "3m"
-      target: 20
-    - duration: "1m"
-      target: 0
-```
-
-## CSV Data Test
-
-```yaml
-name: "CSV Data Test"
-baseUrl: "https://api.example.com/search"
 execution:
   mode: "construct"
   concurrent: 10
   iterations: 100
+
 parameters:
-  - name: "query"
-    type: "csv"
-    file: "./data/search-terms.csv"
-    column: "term"
-```
+  - name: "endpoint"
+    type: "array"
+    values: ["users", "posts", "comments"]
 
-## Batch URL Test
-
-```yaml
-name: "Batch URL Test"
-execution:
-  mode: "batch"
-  concurrent: 15
-  duration: "2m"
-batch:
-  file: "./data/urls.csv"
-  column: "url"
 k6Options:
   thresholds:
     http_req_duration: ["p(95)<500"]
-    http_req_failed: ["rate<0.1"]
 ```
 
-## Image Comparison Load Test
+## Screenshot Comparison
 
-Compare image generation between two API versions:
+### UI Regression Test
 
 ```yaml
-name: "Image API Comparison"
-baseUrl: "https://v1.imageapi.com/generate"
+name: "UI Regression Test"
+baseUrl: "https://staging.example.com"
+
 execution:
   mode: "construct"
   concurrent: 5
-  iterations: 50
+  iterations: 20
+
 parameters:
-  - name: "prompt"
+  - name: "page"
     type: "array"
-    values: ["cat", "dog", "landscape", "portrait", "abstract"]
-  - name: "size"
-    type: "static"
-    value: "512x512"
-  - name: "style"
-    type: "array"
-    values: ["realistic", "cartoon", "artistic"]
+    values: ["home", "about", "products", "contact"]
+
 comparison:
   enabled: true
-  type: "image"
-  baseUrl2: "https://v2.imageapi.com/generate"
+  type: "screenshot"
+  baseUrl2: "https://production.example.com"
   threshold: 0.1
-  timeout: 60000
+  screenshot:
+    viewport:
+      width: 1920
+      height: 1080
+    waitUntil: "networkidle"
+    timeout: 30000
+
 k6Options:
   thresholds:
-    http_req_duration: ["p(95)<30000"]  # 30 second threshold for image generation
-    http_req_failed: ["rate<0.05"]
+    http_req_duration: ["p(95)<2000"]
 ```
 
-**Usage:**
+**Run:**
 ```bash
-# Load test only
-synapse run
-
-# Load test + comparison
-synapse run --compare
-
-# Comparison only (no load test)
-synapse run --compare-only
+synapse run --config ui-regression.yml --compare --save-screenshots
 ```
 
-## Text API Comparison
-
-Compare text processing between different versions:
+### Mobile Viewport Test
 
 ```yaml
-name: "Text Processing Comparison"
-baseUrl: "https://v1.textapi.com/analyze"
+name: "Mobile UI Test"
+baseUrl: "https://m.example.com"
+
+execution:
+  mode: "construct"
+  iterations: 10
+
+parameters:
+  - name: "page"
+    type: "array"
+    values: ["home", "menu", "cart"]
+
+comparison:
+  enabled: true
+  type: "screenshot"
+  baseUrl2: "https://m-beta.example.com"
+  screenshot:
+    viewport:
+      width: 375
+      height: 667
+    waitUntil: "load"
+```
+
+## Visual-Text Comparison
+
+### API Content Validation
+
+```yaml
+name: "API Content Validation"
+baseUrl: "https://api-v1.example.com/render"
+
 execution:
   mode: "construct"
   concurrent: 10
-  iterations: 100
+  iterations: 50
+
 parameters:
-  - name: "text"
-    type: "csv"
-    file: "./data/sample-texts.csv"
-    column: "content"
-  - name: "language"
+  - name: "template"
     type: "array"
-    values: ["en", "es", "fr", "de"]
+    values: ["invoice", "receipt", "report"]
+  - name: "id"
+    type: "integer"
+    min: 1000
+    max: 9999
+
 comparison:
   enabled: true
-  type: "text"
-  baseUrl2: "https://v2.textapi.com/analyze"
-  timeout: 15000
-request:
-  method: "POST"
-  headers:
-    "Content-Type": "application/json"
-    "API-Key": "your-api-key"
+  type: "visual-text"
+  baseUrl2: "https://api-v2.example.com/render"
+  threshold: 0.05
+  screenshot:
+    viewport:
+      width: 1280
+      height: 720
+    waitUntil: "load"
+    timeout: 20000
 ```
 
-## Standalone Comparison Examples
+**Run:**
+```bash
+synapse run --config api-validation.yml --compare-only --save-screenshots
+```
 
-### Image Comparison from CSV
+### Email Template Test
+
+```yaml
+name: "Email Template Validation"
+baseUrl: "https://email-preview.example.com"
+
+execution:
+  mode: "construct"
+  iterations: 20
+
+parameters:
+  - name: "template"
+    type: "array"
+    values: ["welcome", "reset-password", "invoice", "notification"]
+  - name: "locale"
+    type: "array"
+    values: ["en", "es", "fr", "de"]
+
+comparison:
+  enabled: true
+  type: "visual-text"
+  baseUrl2: "https://email-preview-v2.example.com"
+  threshold: 0.02
+  screenshot:
+    viewport:
+      width: 600
+      height: 800
+```
+
+## Image Comparison
+
+### Logo Validation
+
+```yaml
+name: "Logo Comparison"
+baseUrl: "https://cdn.example.com/logos"
+
+execution:
+  mode: "construct"
+  iterations: 10
+
+parameters:
+  - name: "size"
+    type: "array"
+    values: ["small", "medium", "large"]
+  - name: "format"
+    type: "array"
+    values: ["png", "svg", "webp"]
+
+comparison:
+  enabled: true
+  type: "image"
+  baseUrl2: "https://cdn-v2.example.com/logos"
+  threshold: 0.01
+```
+
+## Dynamic Parameters
+
+### E-commerce Search
+
+```yaml
+name: "E-commerce Search Test"
+baseUrl: "https://shop.example.com/search"
+
+execution:
+  mode: "construct"
+  concurrent: 20
+  iterations: 100
+
+parameters:
+  - name: "q"
+    type: "array"
+    values: ["laptop", "phone", "tablet", "headphones"]
+  - name: "category"
+    type: "array"
+    values: ["electronics", "computers", "accessories"]
+  - name: "minPrice"
+    type: "integer"
+    min: 100
+    max: 500
+  - name: "maxPrice"
+    type: "integer"
+    min: 1000
+    max: 5000
+  - name: "sort"
+    type: "array"
+    values: ["price-asc", "price-desc", "rating", "newest"]
+
+k6Options:
+  thresholds:
+    http_req_duration: ["p(95)<1000"]
+    http_req_failed: ["rate<0.01"]
+```
+
+### User Session Simulation
+
+```yaml
+name: "User Session Test"
+baseUrl: "https://app.example.com"
+
+execution:
+  mode: "construct"
+  concurrent: 50
+  duration: "5m"
+
+parameters:
+  - name: "userId"
+    type: "integer"
+    min: 10000
+    max: 99999
+    length: 5
+  - name: "sessionId"
+    type: "string"
+    length: 32
+    charset: "alphanumeric"
+  - name: "action"
+    type: "array"
+    values: ["view", "edit", "save", "delete"]
+
+k6Options:
+  scenarios:
+    normal_load:
+      executor: "ramping-vus"
+      stages:
+        - duration: "1m"
+          target: 10
+        - duration: "3m"
+          target: 50
+        - duration: "1m"
+          target: 0
+```
+
+## CSV Data Source
+
+### Batch URL Testing
+
+```yaml
+name: "Batch URL Test"
+baseUrl: "https://example.com"
+
+execution:
+  mode: "batch"
+  concurrent: 10
+  duration: "2m"
+
+batch:
+  file: "./data/urls.csv"
+  column: "url"
+
+comparison:
+  enabled: true
+  type: "screenshot"
+  baseUrl2: "https://beta.example.com"
+  screenshot:
+    viewport:
+      width: 1920
+      height: 1080
+```
+
+**urls.csv:**
+```csv
+url
+/home
+/about
+/products
+/contact
+```
+
+## Advanced Scenarios
+
+### Stress Test with Comparison
+
+```yaml
+name: "Stress Test"
+baseUrl: "https://api.example.com"
+
+execution:
+  mode: "construct"
+  concurrent: 100
+  iterations: 1000
+
+parameters:
+  - name: "endpoint"
+    type: "array"
+    values: ["users", "posts", "comments"]
+
+comparison:
+  enabled: true
+  type: "image"
+  baseUrl2: "https://api-v2.example.com"
+
+k6Options:
+  scenarios:
+    stress:
+      executor: "ramping-vus"
+      stages:
+        - duration: "2m"
+          target: 10
+        - duration: "5m"
+          target: 50
+        - duration: "2m"
+          target: 100
+        - duration: "5m"
+          target: 100
+        - duration: "2m"
+          target: 0
+  thresholds:
+    http_req_duration: ["p(95)<2000", "p(99)<5000"]
+    http_req_failed: ["rate<0.05"]
+```
+
+### Multi-Region Test
+
+```yaml
+name: "Multi-Region Test"
+baseUrl: "https://us.example.com"
+
+execution:
+  mode: "construct"
+  concurrent: 20
+  iterations: 100
+
+parameters:
+  - name: "region"
+    type: "array"
+    values: ["us-east", "us-west", "eu-west", "ap-south"]
+  - name: "endpoint"
+    type: "array"
+    values: ["api/users", "api/data", "api/metrics"]
+
+comparison:
+  enabled: true
+  type: "screenshot"
+  baseUrl2: "https://eu.example.com"
+  screenshot:
+    viewport:
+      width: 1920
+      height: 1080
+```
+
+## Debugging Examples
+
+### Save Screenshots for Review
 
 ```bash
-# Basic image comparison
-synapse compare --file image-urls.csv --type image
+# Run with screenshot saving
+synapse run --config test.yml --compare --save-screenshots
 
-# Strict comparison with custom threshold
-synapse compare --file images.csv --type image --threshold 0.05 --output ./results
+# Find mismatches
+awk -F',' '$18 < 95 {print $1,$18,$24,$25}' output/detailed-comparison-*.csv
+
+# Open specific screenshots
+open output/screenshots/url1-1234567890.png
+open output/screenshots/url2-1234567890.png
 ```
 
-**CSV format (image-urls.csv):**
-```csv
-url1,url2
-https://v1.api.com/image/cat,https://v2.api.com/image/cat
-https://v1.api.com/image/dog,https://v2.api.com/image/dog
-```
-
-### Text Comparison from CSV
+### Comparison Only Mode
 
 ```bash
-# Text comparison with custom columns
-synapse compare -f api-responses.csv -t text -c1 old_api -c2 new_api
+# Skip load test, just compare
+synapse run --config test.yml --compare-only --save-screenshots
+
+# Faster for debugging
+synapse run --config test.yml --compare-only --save-screenshots -o ./debug
 ```
 
-**CSV format (api-responses.csv):**
-```csv
-old_api,new_api
-https://v1.api.com/summary/1,https://v2.api.com/summary/1
-https://v1.api.com/summary/2,https://v2.api.com/summary/2
-```
+## Tips
+
+1. **Start small** - Use 1-2 iterations for initial testing
+2. **Use dry-run** - Verify script generation first
+3. **Save screenshots** - Always use `--save-screenshots` for debugging
+4. **Set thresholds** - Adjust based on your tolerance for differences
+5. **Monitor resources** - Watch memory/CPU during screenshot tests
+6. **Batch processing** - Use `--compare-only` for large comparison sets

@@ -1,6 +1,6 @@
 ![logo](https://docsify.js.org/_media/icon.svg)
 
-# Synapse <small>1.0.0</small>
+# Synapse <small>1.1.0</small>
 
 > 🚀 **Dynamic Load Testing + Version Comparison** - The Ultimate API Testing Powerhouse
 

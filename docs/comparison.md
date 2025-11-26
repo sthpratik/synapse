@@ -1,274 +1,362 @@
-# Image & Text Comparison
+# Comparison Features
 
-Synapse provides powerful comparison capabilities to test different versions of your applications, compare API responses, or validate content consistency across environments.
-
-## Overview
-
-The comparison feature supports two modes:
-- **Load Test Comparison** - Compare responses during load testing
-- **Standalone Comparison** - Direct comparison from CSV files
+Synapse supports multiple comparison types for validating consistency across different versions or environments.
 
 ## Comparison Types
 
-### Image Comparison
-Uses pixelmatch for pixel-perfect image comparison with configurable thresholds.
+### 1. Image Comparison
 
-### Text Comparison
-Performs exact text matching for API responses or content validation.
-
-## Configuration
-
-### Load Test Comparison
-
-Add comparison configuration to your `synapse.yml`:
+Direct pixel-by-pixel comparison of image URLs.
 
 ```yaml
-name: "Version Comparison Test"
-baseUrl: "https://v1.api.example.com"
-execution:
-  mode: "construct"
-  concurrent: 10
-  iterations: 100
-parameters:
-  - name: "userId"
-    type: "integer"
-    min: 1000
-    max: 9999
 comparison:
   enabled: true
-  type: "image"              # or "text"
-  baseUrl2: "https://v2.api.example.com"
-  threshold: 0.1             # Image similarity threshold (0-1)
-  timeout: 30000             # Request timeout in ms
-  reportFormat: "csv"        # or "json"
+  type: "image"
+  baseUrl2: "https://v2.example.com"
+  threshold: 0.1
 ```
 
-### Comparison Parameters
+**Use Cases:**
+- Compare static images
+- Validate image generation
+- Check for visual regressions
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `enabled` | boolean | false | Enable comparison mode |
-| `type` | string | "image" | Comparison type: "image" or "text" |
-| `baseUrl2` | string | required | Second URL to compare against |
-| `threshold` | number | 0.1 | Image comparison threshold (0-1) |
-| `timeout` | number | 30000 | Request timeout in milliseconds |
-| `reportFormat` | string | "csv" | Report format: "csv" or "json" |
+### 2. Text Comparison
 
-## CLI Commands
+Compare text/HTML content.
 
-### Load Test with Comparison
+```yaml
+comparison:
+  enabled: true
+  type: "text"
+  baseUrl2: "https://v2.example.com"
+```
+
+**Use Cases:**
+- API response validation
+- HTML content comparison
+- JSON output verification
+
+### 3. Screenshot Comparison ⭐ NEW
+
+Browser-based screenshot comparison using Puppeteer.
+
+```yaml
+comparison:
+  enabled: true
+  type: "screenshot"
+  baseUrl2: "https://v2.example.com"
+  threshold: 0.1
+  screenshot:
+    viewport:
+      width: 1920
+      height: 1080
+    waitUntil: "networkidle"
+    timeout: 30000
+```
+
+**Use Cases:**
+- Web page visual comparison
+- UI regression testing
+- Cross-version validation
+- Responsive design testing
+
+### 4. Visual-Text Comparison ⭐ NEW
+
+Combined text content + screenshot comparison.
+
+```yaml
+comparison:
+  enabled: true
+  type: "visual-text"
+  baseUrl2: "https://v2.example.com"
+  threshold: 0.05
+  screenshot:
+    viewport:
+      width: 1280
+      height: 720
+    waitUntil: "load"
+```
+
+**Use Cases:**
+- API-generated content validation
+- Template rendering verification
+- Document generation testing
+- Email template validation
+
+## Configuration Options
+
+### Basic Options
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `enabled` | boolean | Enable comparison | `false` |
+| `type` | string | Comparison type | `image` |
+| `baseUrl2` | string | Second URL to compare | Required |
+| `threshold` | number | Difference threshold (0-1) | `0.1` |
+| `timeout` | number | Request timeout (ms) | `30000` |
+
+### Screenshot Options
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `viewport.width` | number | Browser width | `1920` |
+| `viewport.height` | number | Browser height | `1080` |
+| `waitUntil` | string | Wait strategy | `networkidle` |
+| `timeout` | number | Page load timeout | `30000` |
+
+**Wait Strategies:**
+- `load` - Wait for page load event (faster)
+- `networkidle` - Wait for network idle (more reliable)
+
+## Running Comparisons
+
+### During Load Test
 
 ```bash
-# Default: Load test only (comparison ignored)
-synapse run
+# Run load test + comparison
+synapse run --config test.yml --compare
 
-# Opt-in to comparison
-synapse run --compare
-
-# Comparison only (no load test, generates URLs dynamically)
-synapse run --compare-only
+# Save screenshots for debugging
+synapse run --config test.yml --compare --save-screenshots
 ```
 
-**Behavior:**
-- **Default**: `synapse run` ignores comparison config, runs load test only
-- **Opt-in**: `synapse run --compare` runs load test + comparison if enabled in config
-- **Comparison-only**: `synapse run --compare-only` generates URLs dynamically and compares (no K6)
+### Comparison Only
+
+```bash
+# Skip load test, run comparison only
+synapse run --config test.yml --compare-only
+
+# With screenshots
+synapse run --config test.yml --compare-only --save-screenshots
+```
 
 ### Standalone Comparison
 
 ```bash
-synapse compare --file urls.csv --type image --output ./results
+# Compare from CSV file
+synapse compare --file urls.csv --type screenshot --save-screenshots
 ```
 
-#### Options
+## Output Files
 
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--file` | `-f` | required | CSV file with URLs to compare |
-| `--column1` | `-c1` | "url1" | First URL column name |
-| `--column2` | `-c2` | "url2" | Second URL column name |
-| `--type` | `-t` | "image" | Comparison type: image or text |
-| `--output` | `-o` | "./output" | Output directory |
-| `--timeout` | | 30000 | Request timeout in milliseconds |
-| `--threshold` | | 0.1 | Image comparison threshold (0-1) |
+### Load Test + Comparison
 
-## CSV Format
+```
+output/
+├── detailed-comparison-{timestamp}.csv    # Detailed results
+├── detailed-comparison-{timestamp}.json   # JSON format
+├── comparison-summary-{timestamp}.json    # Summary stats
+└── screenshots/                           # Debug screenshots
+    ├── url1-{timestamp}.png
+    └── url2-{timestamp}.png
+```
 
-Your CSV file should contain at least two columns with URLs:
+### Comparison Only
+
+```
+output/
+├── screenshot-comparison-{timestamp}.csv  # Results
+└── screenshots/                           # Screenshots
+    ├── url1-{timestamp}.png
+    └── url2-{timestamp}.png
+```
+
+## Report Format
+
+### Screenshot Comparison CSV
 
 ```csv
-url1,url2
-https://v1.api.com/image/1,https://v2.api.com/image/1
-https://v1.api.com/image/2,https://v2.api.com/image/2
-https://v1.api.com/text/1,https://v2.api.com/text/1
+Row,URL1,URL2,Success,Similarity%,Screenshot1,Screenshot2
+1,url1,url2,true,99.5,output/screenshots/url1-123.png,output/screenshots/url2-123.png
 ```
 
-## Reports
+### Visual-Text Comparison CSV
 
-Synapse generates multiple output files for comprehensive analysis. See [Output Files](output-files.md) for detailed column descriptions.
-
-### Generated Files
-
-| File | Purpose | Key Columns |
-|------|---------|-------------|
-| `basic-comparison-{date}.csv` | K6 load test results | ResponseTime, Status codes, SizeMatch |
-| `detailed-comparison-{timestamp}.csv` | **Pixelmatch analysis** | **Pixelmatch_Similarity%**, DiffPixels, Image dimensions |
-| `comparison-summary-{timestamp}.json` | Statistical summary | Success rates, average similarity |
-| `results.json` | K6 performance metrics | HTTP timings, throughput |
-
-### Key Metrics
-
-- **`Pixelmatch_Similarity%`** - Most accurate image comparison score (0-100%)
-- **`Pixelmatch_DiffPixels`** - Exact number of different pixels
-- **`LoadTest_ResponseTime`** - Performance under load
-- **`Image_Width/Height`** - Actual decoded image dimensions
-
-For complete column descriptions and usage examples, see [Output Files Documentation](output-files.md).
+```csv
+Row,URL1,URL2,TextMatch,TextSimilarity%,ScreenshotSimilarity%,VisualTextPassed,Screenshot1,Screenshot2
+1,url1,url2,true,100,99.8,true,output/screenshots/url1-123.png,output/screenshots/url2-123.png
+```
 
 ## Examples
 
-### Image Comparison Example
+### Screenshot Comparison
 
 ```yaml
-name: "Image API Comparison"
-baseUrl: "https://v1.imageapi.com/generate"
+name: "UI Regression Test"
+baseUrl: "https://staging.example.com"
+
 execution:
   mode: "construct"
   concurrent: 5
-  iterations: 50
+  iterations: 20
+
 parameters:
-  - name: "prompt"
+  - name: "page"
     type: "array"
-    values: ["cat", "dog", "landscape"]
-  - name: "size"
-    type: "static"
-    value: "512x512"
+    values: ["home", "about", "products", "contact"]
+
 comparison:
   enabled: true
-  type: "image"
-  baseUrl2: "https://v2.imageapi.com/generate"
-  threshold: 0.05  # Very strict comparison
-  timeout: 60000   # Longer timeout for image generation
+  type: "screenshot"
+  baseUrl2: "https://production.example.com"
+  threshold: 0.1
+  screenshot:
+    viewport:
+      width: 1920
+      height: 1080
+    waitUntil: "networkidle"
+    timeout: 30000
 ```
 
-### Comparison-Only Mode
-
-Generate URLs dynamically and compare without load testing:
+### Visual-Text Comparison
 
 ```yaml
-name: "Image Comparison Only"
-baseUrl: "https://v1.api.com/generate"
-execution:
-  iterations: 50  # Will generate 50 URL pairs
-parameters:
-  - name: "prompt"
-    type: "array"
-    values: ["cat", "dog", "landscape"]
-comparison:
-  enabled: true
-  type: "image"
-  baseUrl2: "https://v2.api.com/generate"
-```
+name: "API Content Validation"
+baseUrl: "https://api-v1.example.com/render"
 
-```bash
-synapse run --compare-only
-```
-
-**What happens:**
-1. Generates 50 URL pairs using parameters
-2. Downloads and compares images directly
-3. Creates detailed CSV report
-4. No K6 load testing overhead
-
-### Text API Comparison
-
-```yaml
-name: "Text API Comparison"
-baseUrl: "https://v1.textapi.com/summarize"
 execution:
   mode: "construct"
   concurrent: 10
-  iterations: 100
+  iterations: 50
+
 parameters:
-  - name: "text"
-    type: "csv"
-    file: "./data/articles.csv"
-    column: "content"
+  - name: "template"
+    type: "array"
+    values: ["invoice", "receipt", "report"]
+  - name: "id"
+    type: "integer"
+    min: 1000
+    max: 9999
+
 comparison:
   enabled: true
-  type: "text"
-  baseUrl2: "https://v2.textapi.com/summarize"
-  timeout: 30000
+  type: "visual-text"
+  baseUrl2: "https://api-v2.example.com/render"
+  threshold: 0.05
+  screenshot:
+    viewport:
+      width: 1280
+      height: 720
+    waitUntil: "load"
 ```
 
-### Standalone CSV Comparison
+### Mobile Viewport
+
+```yaml
+comparison:
+  enabled: true
+  type: "screenshot"
+  baseUrl2: "https://mobile.example.com"
+  screenshot:
+    viewport:
+      width: 375
+      height: 667
+    waitUntil: "load"
+```
+
+## Debugging with Screenshots
+
+### Save Screenshots
 
 ```bash
-# Compare images from CSV
-synapse compare \
-  --file image-urls.csv \
-  --type image \
-  --column1 original \
-  --column2 optimized \
-  --threshold 0.1 \
-  --output ./comparison-results
-
-# Compare text responses
-synapse compare \
-  --file api-endpoints.csv \
-  --type text \
-  --column1 v1_url \
-  --column2 v2_url \
-  --timeout 15000
+synapse run --config test.yml --compare --save-screenshots
 ```
 
-## Error Handling
+### Review Mismatches
 
-Common errors and solutions:
+```bash
+# Find rows with low similarity
+awk -F',' '$15 < 95 {print $1,$15,$24,$25}' output/detailed-comparison-*.csv
 
-### Image Dimension Mismatch
+# Open screenshots
+open output/screenshots/url1-*.png
+open output/screenshots/url2-*.png
 ```
-Error: Image dimensions mismatch
-```
-**Solution**: Ensure both images have the same dimensions, or resize them before comparison.
 
-### Timeout Errors
-```
-Error: Timeout
-```
-**Solution**: Increase timeout value or check network connectivity.
+### Batch Review
 
-### Invalid Image Format
+```bash
+# Open all screenshots
+open output/screenshots/*.png
 ```
-Error: Image processing failed
-```
-**Solution**: Ensure URLs return valid PNG/JPEG images.
 
 ## Performance Considerations
 
-- **Image Size**: Larger images take more time to compare
-- **Threshold**: Lower thresholds (stricter comparison) are slower
-- **Concurrent Requests**: Balance concurrency with server capacity
-- **Network**: Consider network latency for remote comparisons
+### Screenshot Comparison
+
+- **Time**: 2-5 seconds per comparison
+- **Memory**: ~100-200MB per browser instance
+- **Recommended concurrent users**: 2-10
+
+### Direct Image Comparison
+
+- **Time**: 50-100ms per comparison
+- **Memory**: Minimal
+- **Recommended concurrent users**: 50-100
+
+### Tips
+
+1. Use `screenshot` for web pages
+2. Use `image` for direct image URLs (faster)
+3. Use `visual-text` when both content and rendering matter
+4. Reduce concurrent users for screenshot tests
+5. Use `--compare-only` for large comparison batches
+
+## Thresholds
+
+### Image/Screenshot Threshold
+
+Value between 0-1 representing acceptable pixel difference:
+
+- `0.01` - Very strict (1% difference)
+- `0.05` - Strict (5% difference)
+- `0.1` - Normal (10% difference)
+- `0.2` - Lenient (20% difference)
+
+### Similarity Percentage
+
+Report shows similarity as percentage:
+
+- `100%` - Identical
+- `99-95%` - Minor differences
+- `95-90%` - Noticeable differences
+- `<90%` - Significant differences
+
+## Troubleshooting
+
+### Screenshots Not Captured
+
+**Issue**: Screenshots not saved even with `--save-screenshots`
+
+**Solution**: Ensure Puppeteer is installed:
+```bash
+npm install puppeteer
+```
+
+### Timeout Errors
+
+**Issue**: Screenshot capture timeout
+
+**Solutions**:
+- Increase timeout: `screenshot.timeout: 60000`
+- Use faster wait: `waitUntil: "load"`
+- Check URL accessibility
+
+### Memory Issues
+
+**Issue**: Out of memory during screenshot tests
+
+**Solutions**:
+- Reduce concurrent users
+- Reduce viewport size
+- Run in smaller batches
 
 ## Best Practices
 
-1. **Start with small batches** to validate configuration
-2. **Use appropriate thresholds** - 0.1 for strict, 0.3 for loose comparison
-3. **Set realistic timeouts** based on your API response times
-4. **Monitor server load** when comparing many images
-5. **Use dry-run mode** to validate configuration before full tests
-
-## Integration with CI/CD
-
-```bash
-# Example CI script
-#!/bin/bash
-synapse compare --file regression-tests.csv --type image --output ./results
-if [ $? -eq 0 ]; then
-  echo "Visual regression tests passed"
-else
-  echo "Visual regression tests failed"
-  exit 1
-fi
-```
+1. **Start small** - Test with 1-2 iterations first
+2. **Use appropriate type** - Choose the right comparison type
+3. **Set realistic thresholds** - Account for dynamic content
+4. **Save screenshots** - Use `--save-screenshots` for debugging
+5. **Monitor resources** - Watch memory and CPU usage
+6. **Batch large tests** - Use `--compare-only` for efficiency

@@ -11,14 +11,16 @@ interface ComparisonRow {
   result: ComparisonResult;
 }
 
-function generateCsvReport(results: ComparisonRow[], type: 'image' | 'text'): string {
+function generateCsvReport(results: ComparisonRow[], type: 'image' | 'text' | 'screenshot' | 'visual-text'): string {
   const baseHeaders = 'Row,URL1,URL2,Success,ResponseTime(ms),URL1_Status,URL2_Status,URL1_Size,URL2_Size';
   
   let specificHeaders = '';
-  if (type === 'image') {
-    specificHeaders = ',Width1,Height1,Width2,Height2,DiffPixels,Similarity%';
-  } else {
+  if (type === 'image' || type === 'screenshot') {
+    specificHeaders = ',Width1,Height1,Width2,Height2,DiffPixels,Similarity%,Screenshot1,Screenshot2';
+  } else if (type === 'text') {
     specificHeaders = ',TextMatch,Similarity%';
+  } else if (type === 'visual-text') {
+    specificHeaders = ',TextMatch,TextSimilarity%,Width1,Height1,Width2,Height2,ScreenshotDiffPixels,ScreenshotSimilarity%,VisualTextPassed,Screenshot1,Screenshot2';
   }
   
   const errorHeaders = ',Error,ErrorDetails';
@@ -28,10 +30,12 @@ function generateCsvReport(results: ComparisonRow[], type: 'image' | 'text'): st
     const base = `${row},"${url1}","${url2}",${result.success},${result.responseTime},${result.url1Status},${result.url2Status},${result.url1Size || ''},${result.url2Size || ''}`;
     
     let specific = '';
-    if (type === 'image') {
-      specific = `,${result.width1 || ''},${result.height1 || ''},${result.width2 || ''},${result.height2 || ''},${result.diffPixels || ''},${result.similarity || ''}`;
-    } else {
+    if (type === 'image' || type === 'screenshot') {
+      specific = `,${result.width1 || ''},${result.height1 || ''},${result.width2 || ''},${result.height2 || ''},${result.diffPixels || result.screenshotDiffPixels || ''},${result.similarity || result.screenshotSimilarity || ''},"${result.screenshot1Path || ''}","${result.screenshot2Path || ''}"`;
+    } else if (type === 'text') {
       specific = `,${result.textMatch || ''},${result.similarity || ''}`;
+    } else if (type === 'visual-text') {
+      specific = `,${result.textMatch || ''},${result.textSimilarity || ''},${result.width1 || ''},${result.height1 || ''},${result.width2 || ''},${result.height2 || ''},${result.screenshotDiffPixels || ''},${result.screenshotSimilarity || ''},${result.visualTextPassed || ''},"${result.screenshot1Path || ''}","${result.screenshot2Path || ''}"`;
     }
     
     const error = `,"${result.error || ''}","${result.errorDetails || ''}"`;
@@ -42,21 +46,24 @@ function generateCsvReport(results: ComparisonRow[], type: 'image' | 'text'): st
 }
 
 export const compareCommand = new Command('compare')
-  .description('Compare images or text content from CSV file')
+  .description('Compare images, text, screenshots, or both from CSV file')
   .requiredOption('-f, --file <path>', 'CSV file with URLs to compare')
-  .option('-c1, --column1 <name>', 'First URL column name', 'url1')
-  .option('-c2, --column2 <name>', 'Second URL column name', 'url2')
-  .option('-t, --type <type>', 'Comparison type: image or text', 'image')
+  .option('--column1 <name>', 'First URL column name', 'url1')
+  .option('--column2 <name>', 'Second URL column name', 'url2')
+  .option('-t, --type <type>', 'Comparison type: image | text | screenshot | visual-text', 'image')
   .option('-o, --output <path>', 'Output directory', './output')
   .option('--timeout <ms>', 'Request timeout in milliseconds', '30000')
   .option('--threshold <value>', 'Image comparison threshold (0-1)', '0.1')
+  .option('--viewport <size>', 'Viewport size for screenshots (WIDTHxHEIGHT)', '1920x1080')
+  .option('--wait-until <strategy>', 'Wait strategy: load | networkidle', 'networkidle')
+  .option('--save-screenshots', 'Save screenshots to output directory (debug mode)')
   .action(async (options) => {
     try {
       console.log('🔍 Starting comparison process...');
       
       // Validate inputs
-      if (!['image', 'text'].includes(options.type)) {
-        throw new Error('Type must be either "image" or "text"');
+      if (!['image', 'text', 'screenshot', 'visual-text'].includes(options.type)) {
+        throw new Error('Type must be: image, text, screenshot, or visual-text');
       }
 
       // Read CSV
@@ -68,11 +75,26 @@ export const compareCommand = new Command('compare')
         throw new Error('No data found in CSV file');
       }
 
+      // Parse viewport
+      const [width, height] = options.viewport.split('x').map(Number);
+
+      // Ensure output directory exists
+      if (!fs.existsSync(options.output)) {
+        fs.mkdirSync(options.output, { recursive: true });
+      }
+
       // Initialize comparator
       const comparator = new Comparator({
         type: options.type,
         timeout: parseInt(options.timeout),
-        threshold: parseFloat(options.threshold)
+        threshold: parseFloat(options.threshold),
+        screenshot: {
+          viewport: { width, height },
+          waitUntil: options.waitUntil,
+          timeout: parseInt(options.timeout)
+        },
+        saveScreenshots: options.saveScreenshots || false,
+        outputDir: options.output
       });
 
       const results: ComparisonRow[] = [];

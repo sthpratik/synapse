@@ -1,0 +1,54 @@
+name: "QR Code Screenshot Comparison"
+description: "Compare QR code generation between two services"
+baseUrl: "https://www.google.com/"
+
+execution:
+  mode: "construct"
+  concurrent: 3
+  iterations: 5
+
+parameters:
+  - name: "data"
+    type: "array"
+    values: 
+      - "https://paasa.online"
+      - "https://example.com"
+      - "Hello World"
+      - "Test QR Code 123"
+  
+  - name: "type"
+    type: "array"
+    values: ["QRCode", "Code128", "Code39", "EAN13"]
+  
+  - name: "level"
+    type: "array"
+    values: ["L", "M", "Q", "H"]
+  
+  - name: "gravity"
+    type: "array"
+    values: ["north", "northeast", "southeast", "south", "southwest", "west", "northwest", "east", "center"]
+  
+  - name: "width"
+    type: "integer"
+    min: 100
+    max: 500
+  
+  - name: "color"
+    type: "array"
+    values: ["FFFFFF", "000000", "FF0000", "00FF00", "0000FF", "FFFF00"]
+
+comparison:
+  enabled: true
+  type: "screenshot"
+  baseUrl2: "https://www.google.com/"
+  threshold: 0.15
+  screenshot:
+    viewport:
+      width: 800
+      height: 600
+    waitUntil: "load"
+    timeout: 20000
+
+k6Options:
+  thresholds:
+    http_req_duration: ["p(95)<3000"]

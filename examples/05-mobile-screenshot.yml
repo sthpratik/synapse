@@ -1,0 +1,55 @@
+# Example 5: Mobile Viewport Screenshot
+# Purpose: Test mobile responsive design
+# Use Case: Mobile UI testing, responsive design validation
+
+name: "Mobile Screenshot Example"
+description: "Test mobile viewport rendering"
+
+# Mobile site URL
+baseUrl: "https://m.example.com"
+
+execution:
+  mode: "construct"
+  concurrent: 3
+  iterations: 15
+
+parameters:
+  # Mobile pages
+  - name: "page"
+    type: "array"
+    values: ["home", "menu", "cart", "checkout", "profile"]
+  
+  # Device type (for analytics)
+  - name: "device"
+    type: "array"
+    values: ["iphone", "android", "tablet"]
+
+comparison:
+  enabled: true
+  type: "screenshot"
+  
+  # Compare against beta mobile site
+  baseUrl2: "https://m-beta.example.com"
+  
+  threshold: 0.1
+  
+  screenshot:
+    # Mobile viewport sizes
+    viewport:
+      # iPhone 12/13 size
+      width: 390
+      height: 844
+      
+      # Other common sizes:
+      # iPhone SE: 375x667
+      # iPhone 14 Pro Max: 430x932
+      # iPad: 768x1024
+      # Android (Pixel): 412x915
+    
+    waitUntil: "networkidle"
+    timeout: 30000
+
+k6Options:
+  thresholds:
+    # Mobile should load quickly
+    http_req_duration: ["p(95)<3000"]

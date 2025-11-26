@@ -1,7 +1,7 @@
 {
   "name": "synapse-surge",
-  "version": "1.0.0",
-  "description": "Dynamic load testing tool with intelligent version comparison using K6, pixelmatch, and Sharp",
+  "version": "1.1.0",
+  "description": "Dynamic load testing tool with screenshot comparison, visual-text validation, and intelligent version comparison using K6, Puppeteer, and Sharp",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -27,6 +27,7 @@
     "mcp:dev": "cd mcp-server && npm run dev",
     "mcp:start": "cd mcp-server && npm start",
     "prepare": "npm run build",
+    "postinstall": "node scripts/install-k6.js",
     "prepublishOnly": "npm test && npm run build && npm run docs:version",
     "clean": "rm -rf dist"
   },
@@ -73,10 +74,11 @@
     "commander": "^14.0.2",
     "csv-parse": "^5.6.0",
     "csv-parser": "^3.0.0",
-    "joi": "^18.0.1",
+    "joi": "^18.0.2",
     "jpeg-js": "^0.4.4",
     "pixelmatch": "^5.3.0",
     "pngjs": "^7.0.0",
+    "puppeteer": "^24.31.0",
     "sharp": "^0.34.5",
     "yaml": "^2.3.4"
   },
@@ -85,7 +87,6 @@
     "@types/node": "^24.10.1",
     "@types/pixelmatch": "^5.2.6",
     "@types/pngjs": "^6.0.5",
-    "docsify-cli": "^4.4.4",
     "jest": "^30.2.0",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",

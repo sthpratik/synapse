@@ -13,11 +13,18 @@ export interface SynapseConfig {
 
 export interface ComparisonConfig {
   enabled: boolean;
-  type: 'image' | 'text';
+  type: 'image' | 'text' | 'screenshot' | 'visual-text';
   baseUrl2: string;
   timeout?: number;
   threshold?: number;
   reportFormat?: 'csv' | 'json';
+  screenshot?: ScreenshotConfig;
+}
+
+export interface ScreenshotConfig {
+  viewport?: { width: number; height: number };
+  waitUntil?: 'load' | 'networkidle';
+  timeout?: number;
 }
 
 export interface ExecutionConfig {

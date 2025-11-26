@@ -1,0 +1,30 @@
+name: "Screenshot Comparison Test"
+description: "Compare web pages visually using browser screenshots"
+baseUrl: "https://example.com"
+
+execution:
+  mode: "construct"
+  concurrent: 2
+  iterations: 5
+
+parameters:
+  - name: "page"
+    type: "array"
+    values: ["about", "contact", "products"]
+
+comparison:
+  enabled: true
+  type: "screenshot"  # Options: image | text | screenshot | visual-text
+  baseUrl2: "https://example.org"
+  threshold: 0.1
+  timeout: 30000
+  screenshot:
+    viewport:
+      width: 1920
+      height: 1080
+    waitUntil: "networkidle"
+    timeout: 30000
+
+k6Options:
+  thresholds:
+    http_req_duration: ["p(95)<2000"]

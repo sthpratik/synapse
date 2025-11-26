@@ -1,0 +1,56 @@
+# Example 4: Text/API Comparison
+# Purpose: Compare text/JSON/HTML content
+# Use Case: API response validation, HTML source comparison
+
+name: "Text Comparison Example"
+description: "Compare API responses between versions"
+
+# API base URL
+baseUrl: "https://api.example.com/v1"
+
+execution:
+  mode: "construct"
+  concurrent: 30
+  iterations: 100
+
+parameters:
+  # API endpoint
+  - name: "endpoint"
+    type: "array"
+    values: ["users", "posts", "comments", "products"]
+  
+  # User ID
+  - name: "id"
+    type: "integer"
+    min: 1
+    max: 100
+  
+  # Response format
+  - name: "format"
+    type: "array"
+    values: ["json", "xml", "html"]
+
+comparison:
+  enabled: true
+  
+  # Type: "text" for content comparison (no screenshots)
+  type: "text"
+  
+  # Compare against v2 API
+  baseUrl2: "https://api.example.com/v2"
+  
+  # Timeout for API requests
+  timeout: 5000
+
+k6Options:
+  thresholds:
+    # API performance requirements
+    http_req_duration: ["p(95)<500", "p(99)<1000"]
+    http_req_failed: ["rate<0.01"]
+  
+  # Constant load
+  scenarios:
+    api_test:
+      executor: "constant-vus"
+      vus: 30
+      duration: "2m"

@@ -1,0 +1,74 @@
+# Example 1: Screenshot Comparison
+# Purpose: Compare web pages visually between two versions/environments
+# Use Case: UI regression testing, version comparison
+
+# Test name - appears in reports
+name: "Screenshot Comparison Example"
+
+# Description of what this test does
+description: "Compare web pages visually between staging and production"
+
+# Base URL - the first version/environment to test
+baseUrl: "https://example.com"
+
+# Execution configuration
+execution:
+  # Mode: "construct" builds URLs dynamically, "batch" uses pre-built URLs from CSV
+  mode: "construct"
+  
+  # Number of concurrent virtual users (parallel requests)
+  concurrent: 5
+  
+  # Total number of test iterations to run
+  iterations: 10
+
+# Parameters - used to build dynamic URLs
+parameters:
+  # Parameter 1: Page to test
+  - name: "page"
+    # Type: "array" picks random value from list
+    type: "array"
+    # List of pages to test
+    values: ["home", "about", "products", "contact"]
+  
+  # Parameter 2: Query parameter (optional)
+  - name: "lang"
+    type: "array"
+    values: ["en", "es", "fr"]
+
+# Comparison configuration
+comparison:
+  # Enable comparison feature
+  enabled: true
+  
+  # Type: "screenshot" for browser-based visual comparison
+  type: "screenshot"
+  
+  # Second URL to compare against (e.g., production, v2, beta)
+  baseUrl2: "https://example.org"
+  
+  # Threshold: 0-1, how much difference is acceptable
+  # 0.1 = 10% difference allowed
+  threshold: 0.1
+  
+  # Screenshot-specific settings
+  screenshot:
+    # Browser viewport size
+    viewport:
+      width: 1920   # Desktop width
+      height: 1080  # Desktop height
+    
+    # Wait strategy: "load" (faster) or "networkidle" (more reliable)
+    waitUntil: "networkidle"
+    
+    # Maximum time to wait for page load (milliseconds)
+    timeout: 30000
+
+# K6 load testing options
+k6Options:
+  # Performance thresholds - test fails if not met
+  thresholds:
+    # 95% of requests must complete under 2 seconds
+    http_req_duration: ["p(95)<2000"]
+    # Less than 1% of requests can fail
+    http_req_failed: ["rate<0.01"]

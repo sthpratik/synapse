@@ -1,0 +1,17 @@
+name: "QR Code Test"
+baseUrl: "https://example.com"
+execution:
+  mode: "construct"
+  iterations: 2
+parameters:
+  - name: "page"
+    type: "array"
+    values: ["home", "about"]
+comparison:
+  enabled: true
+  type: "screenshot"
+  baseUrl2: "https://example.org"
+  screenshot:
+    viewport: { width: 800, height: 600 }
+    waitUntil: "load"
+    timeout: 30000

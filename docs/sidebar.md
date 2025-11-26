@@ -1,16 +1,33 @@
-* [Home](/)
-* [K6 Installation](k6-installation.md)
-* [Getting Started](getting-started.md)
-* [Configuration Schema](config-schema.md)
-* [Parameter Types](parameter-types.md)
-* [K6 Options](k6-options.md)
-* [Comparison](comparison.md)
-* [Output Files](output-files.md)
-* [Examples](examples.md)
-* [MCP Integration](mcp-integration.md)
-* [Architecture](architecture.md)
-* [CLI Reference](cli-reference.md)
-* [API Reference](api-reference.md)
-* [Testing](testing.md)
-* [Deployment](deployment.md)
-* [Contributing](contributing.md)
+- [Home](/)
+- [Getting Started](getting-started.md)
+- [Init Templates](init-templates.md)
+- [CLI Examples](cli-examples.md)
+- [CLI Reference](cli-reference.md)
+
+**Configuration**
+- [Config Schema](config-schema.md)
+- [Parameter Types](parameter-types.md)
+- [K6 Options](k6-options.md)
+
+**Comparison**
+- [Comparison Features](comparison.md)
+- [Screenshot Comparison](screenshot-comparison.md)
+- [Debug Mode](debug-mode.md)
+
+**Installation**
+- [K6 Installation](k6-installation.md)
+- [K6 Auto-Install](k6-auto-install.md)
+
+**Advanced**
+- [MCP Integration](mcp-integration.md)
+- [Output Files](output-files.md)
+- [Architecture](architecture.md)
+- [API Reference](api-reference.md)
+
+**Development**
+- [Testing](testing.md)
+- [Contributing](contributing.md)
+- [Deployment](deployment.md)
+
+**Examples**
+- [Examples](examples.md)

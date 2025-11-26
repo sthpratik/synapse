@@ -1,0 +1,24 @@
+name: "Simple Screenshot Test"
+description: "Test screenshot comparison with example.com"
+baseUrl: "https://example.com"
+
+execution:
+  mode: "construct"
+  concurrent: 1
+  iterations: 2
+
+comparison:
+  enabled: true
+  type: "screenshot"
+  baseUrl2: "https://example.org"
+  threshold: 0.1
+  screenshot:
+    viewport:
+      width: 1280
+      height: 720
+    waitUntil: "load"
+    timeout: 30000
+
+k6Options:
+  thresholds:
+    http_req_duration: ["p(95)<5000"]

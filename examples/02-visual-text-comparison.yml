@@ -1,0 +1,62 @@
+# Example 2: Visual-Text Comparison
+# Purpose: Compare both HTML content AND visual rendering
+# Use Case: API-generated content, template validation, document generation
+
+name: "Visual-Text Comparison Example"
+description: "Validate both content and rendering of API responses"
+
+# API endpoint that generates HTML/documents
+baseUrl: "https://api.example.com/render"
+
+execution:
+  mode: "construct"
+  concurrent: 10
+  iterations: 20
+
+parameters:
+  # Template type to render
+  - name: "template"
+    type: "array"
+    values: ["invoice", "receipt", "report", "certificate"]
+  
+  # Document ID - random integer
+  - name: "id"
+    type: "integer"
+    min: 1000      # Minimum value
+    max: 9999      # Maximum value
+    length: 4      # Pad with zeros to 4 digits (e.g., 0123)
+  
+  # Format parameter
+  - name: "format"
+    type: "array"
+    values: ["pdf", "html", "png"]
+
+comparison:
+  enabled: true
+  
+  # Type: "visual-text" compares BOTH text content AND screenshot
+  type: "visual-text"
+  
+  # Compare against v2 API
+  baseUrl2: "https://api-v2.example.com/render"
+  
+  # Stricter threshold for visual comparison (5% difference)
+  threshold: 0.05
+  
+  screenshot:
+    # Document viewport (A4 size approximation)
+    viewport:
+      width: 1280
+      height: 720
+    
+    # Use "load" for faster comparison (documents load quickly)
+    waitUntil: "load"
+    
+    timeout: 20000
+
+k6Options:
+  thresholds:
+    # API should respond quickly
+    http_req_duration: ["p(95)<1000"]
+    # High reliability required
+    http_req_failed: ["rate<0.001"]

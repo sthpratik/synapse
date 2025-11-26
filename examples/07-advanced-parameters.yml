@@ -1,0 +1,78 @@
+# Example 7: Advanced Parameter Types
+# Purpose: Demonstrate all parameter types
+# Use Case: Complex URL construction, realistic data generation
+
+name: "Advanced Parameters Example"
+description: "All parameter types in one config"
+
+baseUrl: "https://api.example.com/search"
+
+execution:
+  mode: "construct"
+  concurrent: 15
+  iterations: 30
+
+parameters:
+  # 1. ARRAY - Pick random value from list
+  - name: "category"
+    type: "array"
+    values: ["electronics", "books", "clothing", "food"]
+  
+  # 2. INTEGER - Random number in range
+  - name: "userId"
+    type: "integer"
+    min: 10000
+    max: 99999
+    length: 5      # Pad with zeros: 00123
+  
+  # 3. STRING - Random string generation
+  - name: "sessionId"
+    type: "string"
+    length: 32
+    charset: "alphanumeric"  # Options: alphanumeric, alpha, numeric, custom
+  
+  # 4. STATIC - Fixed value
+  - name: "apiKey"
+    type: "static"
+    value: "demo-key-12345"
+  
+  # 5. CSV - Load from CSV file
+  - name: "region"
+    type: "csv"
+    file: "./data/regions.csv"
+    column: "code"
+  
+  # 6. URL - Load URLs from CSV (with encoding)
+  - name: "imageUrl"
+    type: "url"
+    file: "./data/images.csv"
+    column: "url"
+    # encoding: "base64"  # Optional: base64 encode the URL
+  
+  # 7. ARRAY with special characters (auto-encoded)
+  - name: "query"
+    type: "array"
+    values: ["hello world", "cats & dogs", "price: $100"]
+    # Values are automatically URL-encoded
+
+comparison:
+  enabled: true
+  type: "text"
+  baseUrl2: "https://api-v2.example.com/search"
+
+k6Options:
+  thresholds:
+    http_req_duration: ["p(95)<1000"]
+
+# Required CSV files:
+# 
+# data/regions.csv:
+# code,name
+# us-east,US East
+# us-west,US West
+# eu-west,EU West
+#
+# data/images.csv:
+# url
+# https://cdn.example.com/img1.jpg
+# https://cdn.example.com/img2.jpg

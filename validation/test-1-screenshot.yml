@@ -1,0 +1,17 @@
+name: "Single Screenshot Test"
+baseUrl: "https://example.com"
+execution:
+  mode: "construct"
+  iterations: 1
+parameters:
+  - name: "test"
+    type: "static"
+    value: "test"
+comparison:
+  enabled: true
+  type: "screenshot"
+  baseUrl2: "https://example.org"
+  screenshot:
+    viewport: { width: 800, height: 600 }
+    waitUntil: "load"
+    timeout: 30000

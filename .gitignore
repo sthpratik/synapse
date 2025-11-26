@@ -20,3 +20,7 @@ npm-debug.log*
 # Test files
 test-project/
 output/
+
+# Validation test outputs
+validation/output/
+validation/*.log

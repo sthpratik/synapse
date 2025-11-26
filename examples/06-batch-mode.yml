@@ -1,0 +1,52 @@
+# Example 6: Batch Mode with CSV
+# Purpose: Test pre-defined list of URLs from CSV file
+# Use Case: Testing specific URLs, regression testing, sitemap testing
+
+name: "Batch Mode Example"
+description: "Test URLs from CSV file"
+
+# Base URL (will be replaced by CSV URLs)
+baseUrl: "https://example.com"
+
+execution:
+  # Mode: "batch" uses URLs from CSV file
+  mode: "batch"
+  
+  concurrent: 10
+  
+  # Duration instead of iterations for batch mode
+  duration: "5m"
+
+# Batch configuration
+batch:
+  # CSV file path (relative to config file)
+  file: "./data/urls.csv"
+  
+  # Column name containing URLs
+  column: "url"
+
+comparison:
+  enabled: true
+  type: "screenshot"
+  
+  # Compare against staging
+  baseUrl2: "https://staging.example.com"
+  
+  screenshot:
+    viewport:
+      width: 1920
+      height: 1080
+    waitUntil: "load"
+
+k6Options:
+  thresholds:
+    http_req_duration: ["p(95)<2000"]
+
+# CSV file format (data/urls.csv):
+# url
+# /home
+# /about
+# /products
+# /contact
+# /blog/post-1
+# /blog/post-2

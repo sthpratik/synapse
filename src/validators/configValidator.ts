@@ -82,11 +82,19 @@ export class ConfigValidator {
       }).optional(),
       comparison: Joi.object({
         enabled: Joi.boolean().required(),
-        type: Joi.string().valid('image', 'text').optional().default('image'),
+        type: Joi.string().valid('image', 'text', 'screenshot', 'visual-text').optional().default('image'),
         baseUrl2: Joi.string().uri().when('enabled', { is: true, then: Joi.required() }),
         threshold: Joi.number().min(0).max(1).optional().default(0.1),
         timeout: Joi.number().positive().optional().default(30000),
-        reportFormat: Joi.string().valid('csv', 'json').optional().default('csv')
+        reportFormat: Joi.string().valid('csv', 'json').optional().default('csv'),
+        screenshot: Joi.object({
+          viewport: Joi.object({
+            width: Joi.number().positive().optional().default(1920),
+            height: Joi.number().positive().optional().default(1080)
+          }).optional(),
+          waitUntil: Joi.string().valid('load', 'networkidle').optional().default('networkidle'),
+          timeout: Joi.number().positive().optional().default(30000)
+        }).optional()
       }).optional()
     });
   }

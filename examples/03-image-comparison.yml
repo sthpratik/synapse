@@ -1,0 +1,71 @@
+# Example 3: Image Comparison
+# Purpose: Direct pixel-by-pixel comparison of image URLs
+# Use Case: Logo validation, chart comparison, image generation testing
+
+name: "Image Comparison Example"
+description: "Compare generated images between two CDN versions"
+
+# CDN base URL
+baseUrl: "https://cdn.example.com/images"
+
+execution:
+  mode: "construct"
+  concurrent: 20
+  iterations: 50
+
+parameters:
+  # Image size
+  - name: "size"
+    type: "array"
+    values: ["small", "medium", "large", "thumbnail"]
+  
+  # Image format
+  - name: "format"
+    type: "array"
+    values: ["png", "jpg", "webp"]
+  
+  # Image ID
+  - name: "id"
+    type: "integer"
+    min: 1
+    max: 1000
+  
+  # Quality parameter (for jpg/webp)
+  - name: "quality"
+    type: "integer"
+    min: 70
+    max: 100
+
+comparison:
+  enabled: true
+  
+  # Type: "image" for direct image comparison (fastest)
+  type: "image"
+  
+  # Compare against new CDN
+  baseUrl2: "https://cdn-v2.example.com/images"
+  
+  # Very strict threshold for images (1% difference)
+  threshold: 0.01
+  
+  # Timeout for image download
+  timeout: 10000
+
+k6Options:
+  thresholds:
+    # CDN should be fast
+    http_req_duration: ["p(95)<500"]
+    # High availability required
+    http_req_failed: ["rate<0.001"]
+  
+  # Ramp up load gradually
+  scenarios:
+    image_load:
+      executor: "ramping-vus"
+      stages:
+        - duration: "1m"
+          target: 5      # Warm up
+        - duration: "3m"
+          target: 20     # Normal load
+        - duration: "1m"
+          target: 0      # Cool down

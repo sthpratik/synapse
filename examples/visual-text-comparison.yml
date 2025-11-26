@@ -1,0 +1,35 @@
+name: "Visual-Text Comparison Test"
+description: "Compare both HTML content and visual rendering"
+baseUrl: "https://api.example.com/render"
+
+execution:
+  mode: "construct"
+  concurrent: 5
+  iterations: 10
+
+parameters:
+  - name: "template"
+    type: "array"
+    values: ["invoice", "receipt", "report"]
+  - name: "id"
+    type: "integer"
+    min: 1000
+    max: 9999
+
+comparison:
+  enabled: true
+  type: "visual-text"  # Compare both text content AND visual rendering
+  baseUrl2: "https://api-v2.example.com/render"
+  threshold: 0.05  # 5% difference allowed for screenshots
+  timeout: 30000
+  screenshot:
+    viewport:
+      width: 1280
+      height: 720
+    waitUntil: "load"
+    timeout: 20000
+
+k6Options:
+  thresholds:
+    http_req_duration: ["p(95)<1000"]
+    http_req_failed: ["rate<0.01"]

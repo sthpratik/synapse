@@ -1,58 +1,8 @@
 # CLI Reference
 
-## Global Installation
-
-```bash
-npm install -g synapse
-```
+Complete command-line interface reference for Synapse.
 
 ## Commands
-
-### `synapse test`
-
-Run simple load test without configuration file.
-
-```bash
-synapse test [options]
-```
-
-**Options:**
-- `-u, --url <url>` - Target URL to test (required)
-- `-c, --concurrent <number>` - Number of concurrent users (required)
-- `-r, --requests <number>` - Total number of requests (required)
-- `-o, --output <path>` - Output directory (default: ./output)
-- `--dry-run` - Generate script without running
-- `--keep-script` - Keep generated K6 script
-
-**Examples:**
-```bash
-# Basic load test
-synapse test --url "https://api.example.com" --concurrent 10 --requests 100
-
-# With custom output directory
-synapse test -u "https://api.example.com" -c 5 -r 50 -o ./results
-
-# Dry run to see generated script
-synapse test --url "https://api.example.com" --concurrent 10 --requests 100 --dry-run
-```
-
-### `synapse init`
-
-Initialize a new Synapse configuration file.
-
-```bash
-synapse init [options]
-```
-
-**Options:**
-- `--name <name>` - Test name
-- `--url <url>` - Base URL for testing
-- `--output <path>` - Output file path (default: synapse.yml)
-
-**Example:**
-```bash
-synapse init --name "API Test" --url "https://api.example.com"
-```
 
 ### `synapse run`
 
@@ -63,116 +13,245 @@ synapse run [options]
 ```
 
 **Options:**
-- `-c, --config <path>` - Configuration file path (default: synapse.yml)
-- `-o, --output <path>` - Output directory (default: ./output)
-- `--dry-run` - Generate script without running
-- `--keep-script` - Keep generated K6 script after execution
-- `--compare` - Run comparison if enabled in config (opt-in)
-- `--compare-only` - Generate URLs and run comparison only (skip load test)
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-c, --config <path>` | Path to configuration file | `synapse.yml` |
+| `-o, --output <path>` | Output directory | `./output` |
+| `--dry-run` | Generate script without running | - |
+| `--keep-script` | Keep generated K6 script | - |
+| `--compare` | Run comparison if enabled | - |
+| `--compare-only` | Run only comparison (skip load test) | - |
+| `--save-screenshots` | Save screenshots during comparison | - |
 
 **Examples:**
+
 ```bash
-# Run with default config (load test only)
-synapse run
+# Basic run
+synapse run --config test.yml
 
-# Run with comparison enabled
-synapse run --compare
+# Dry run (generate script only)
+synapse run --config test.yml --dry-run
 
-# Run only comparison (no load test)
-synapse run --compare-only
+# Run with comparison
+synapse run --config test.yml --compare
 
-# Dry run to see generated script
-synapse run --dry-run
+# Comparison only (no load test)
+synapse run --config test.yml --compare-only
 
-# Dry run with comparison
-synapse run --compare --dry-run
-
-# Keep generated script
-synapse run --keep-script
+# Save screenshots for debugging
+synapse run --config test.yml --compare --save-screenshots
 ```
 
-### `synapse validate`
+### `synapse test`
 
-Validate configuration file syntax and schema.
-
-```bash
-synapse validate [options]
-```
-
-**Options:**
-- `-c, --config <path>` - Configuration file path (default: synapse.yml)
-
-**Example:**
-```bash
-synapse validate -c my-test.yml
-```
-
-### `synapse generate`
-
-Generate K6 script without running the test.
+Quick load test without configuration file.
 
 ```bash
-synapse generate [options]
+synapse test [options]
 ```
 
 **Options:**
-- `-c, --config <path>` - Configuration file path (default: synapse.yml)
-- `-o, --output <path>` - Output script path (default: test.js)
+
+| Option | Description | Required |
+|--------|-------------|----------|
+| `-u, --url <url>` | Target URL | Yes |
+| `-c, --concurrent <number>` | Concurrent users | Yes |
+| `-r, --requests <number>` | Total requests | Yes |
+| `-o, --output <path>` | Output directory | No |
+| `--dry-run` | Generate script only | No |
+| `--keep-script` | Keep generated script | No |
 
 **Example:**
+
 ```bash
-synapse generate -c my-test.yml -o my-test.js
+synapse test --url "https://api.example.com" --concurrent 10 --requests 100
 ```
 
 ### `synapse compare`
 
-Compare images or text content from CSV file.
+Compare images, text, or screenshots from CSV file.
 
 ```bash
 synapse compare [options]
 ```
 
 **Options:**
-- `-f, --file <path>` - CSV file with URLs to compare (required)
-- `-c1, --column1 <name>` - First URL column name (default: url1)
-- `-c2, --column2 <name>` - Second URL column name (default: url2)
-- `-t, --type <type>` - Comparison type: image or text (default: image)
-- `-o, --output <path>` - Output directory (default: ./output)
-- `--timeout <ms>` - Request timeout in milliseconds (default: 30000)
-- `--threshold <value>` - Image comparison threshold 0-1 (default: 0.1)
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-f, --file <path>` | CSV file with URLs | Required |
+| `--column1 <name>` | First URL column | `url1` |
+| `--column2 <name>` | Second URL column | `url2` |
+| `-t, --type <type>` | Comparison type | `image` |
+| `-o, --output <path>` | Output directory | `./output` |
+| `--timeout <ms>` | Request timeout | `30000` |
+| `--threshold <value>` | Comparison threshold (0-1) | `0.1` |
+| `--viewport <size>` | Viewport size (WIDTHxHEIGHT) | `1920x1080` |
+| `--wait-until <strategy>` | Wait strategy | `networkidle` |
+| `--save-screenshots` | Save screenshots | - |
+
+**Comparison Types:**
+
+- `image` - Direct image URL comparison
+- `text` - Text/HTML content comparison
+- `screenshot` - Browser screenshot comparison
+- `visual-text` - Text + Screenshot comparison
 
 **Examples:**
+
 ```bash
-# Basic image comparison
+# Image comparison
 synapse compare --file urls.csv --type image
 
-# Text comparison with custom columns
-synapse compare -f endpoints.csv -t text -c1 v1_url -c2 v2_url
+# Screenshot comparison
+synapse compare --file urls.csv --type screenshot --save-screenshots
 
-# Strict image comparison with custom threshold
-synapse compare --file images.csv --type image --threshold 0.05
+# Visual-text comparison
+synapse compare --file urls.csv --type visual-text --viewport 1280x720
 
-# With custom timeout and output directory
-synapse compare -f urls.csv --timeout 60000 -o ./comparison-results
+# Custom threshold
+synapse compare --file urls.csv --type image --threshold 0.05
 ```
 
-**CSV Format:**
-```csv
-url1,url2
-https://v1.api.com/image/1,https://v2.api.com/image/1
-https://v1.api.com/image/2,https://v2.api.com/image/2
+### `synapse validate`
+
+Validate configuration file.
+
+```bash
+synapse validate [options]
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-c, --config <path>` | Configuration file | `synapse.yml` |
+
+**Example:**
+
+```bash
+synapse validate --config test.yml
+```
+
+### `synapse generate`
+
+Generate K6 script without running.
+
+```bash
+synapse generate [options]
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-c, --config <path>` | Configuration file | `synapse.yml` |
+| `-o, --output <path>` | Output script path | `test.js` |
+
+**Example:**
+
+```bash
+synapse generate --config test.yml --output custom-test.js
+```
+
+### `synapse init`
+
+Initialize new configuration file.
+
+```bash
+synapse init [options]
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--name <name>` | Test name | Required |
+| `--url <url>` | Base URL | Required |
+| `-o, --output <path>` | Output file | `synapse.yml` |
+
+**Example:**
+
+```bash
+synapse init --name "API Test" --url "https://api.example.com"
 ```
 
 ## Global Options
 
-All commands support these global options:
-
-- `--help` - Show help information
-- `--version` - Show version number
+| Option | Description |
+|--------|-------------|
+| `-V, --version` | Output version number |
+| `-h, --help` | Display help |
 
 ## Exit Codes
 
-- `0` - Success
-- `1` - Configuration error
-- `2` - Validation error
-- `3` - Execution error
+| Code | Description |
+|------|-------------|
+| 0 | Success |
+| 1 | Error (validation, execution, etc.) |
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `K6_BROWSER_ENABLED` | Enable K6 browser | `true` |
+
+## Examples
+
+### Complete Workflow
+
+```bash
+# 1. Initialize config
+synapse init --name "My Test" --url "https://api.example.com"
+
+# 2. Validate config
+synapse validate
+
+# 3. Dry run
+synapse run --dry-run
+
+# 4. Run test
+synapse run
+
+# 5. Run with comparison
+synapse run --compare --save-screenshots
+```
+
+### Screenshot Comparison Workflow
+
+```bash
+# 1. Create config with screenshot comparison
+cat > screenshot-test.yml << EOF
+name: "Screenshot Test"
+baseUrl: "https://v1.example.com"
+execution:
+  mode: "construct"
+  iterations: 10
+parameters:
+  - name: "page"
+    type: "array"
+    values: ["home", "about", "contact"]
+comparison:
+  enabled: true
+  type: "screenshot"
+  baseUrl2: "https://v2.example.com"
+  screenshot:
+    viewport: { width: 1920, height: 1080 }
+EOF
+
+# 2. Run comparison with screenshots
+synapse run --config screenshot-test.yml --compare-only --save-screenshots
+
+# 3. Review results
+cat output/screenshot-comparison-*.csv
+open output/screenshots/
+```
+
+## Tips
+
+- Use `--dry-run` to verify script generation before running
+- Use `--keep-script` to inspect generated K6 scripts
+- Use `--compare-only` for faster comparison without load testing
+- Use `--save-screenshots` to debug visual differences
+- Check `output/` directory for all generated files

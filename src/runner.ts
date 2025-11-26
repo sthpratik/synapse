@@ -7,6 +7,7 @@ import { SynapseConfig } from './types/config';
 import { ConfigValidator } from './validators/configValidator';
 import { K6Generator } from './generators/k6Generator';
 import { ComparisonPostProcessor } from './comparison/postProcessor.js';
+import { ensureK6Installed } from './utils/k6-checker.js';
 
 export interface RunOptions {
   outputDir: string;
@@ -14,6 +15,7 @@ export interface RunOptions {
   keepScript?: boolean;
   enableComparison?: boolean;
   comparisonOnly?: boolean;
+  saveScreenshots?: boolean;
 }
 
 export interface SimpleTestOptions {
@@ -47,7 +49,7 @@ export class SynapseRunner {
         process.exit(1);
       }
       console.log(chalk.blue('🔍 Running comparison only...'));
-      await this.runComparisonOnly(config, options.outputDir);
+      await this.runComparisonOnly(config, options.outputDir, options.saveScreenshots);
       return;
     }
     
@@ -69,7 +71,7 @@ export class SynapseRunner {
     // Handle comparison post-processing if enabled
     if (hasComparison) {
       console.log(chalk.blue('🔍 Processing comparison results...'));
-      await this.processComparison(config, options.outputDir);
+      await this.processComparison(config, options.outputDir, options.saveScreenshots);
     }
     
     if (!options.keepScript) {
@@ -150,12 +152,9 @@ export class SynapseRunner {
   }
 
   private async runK6Test(scriptPath: string, outputDir: string): Promise<void> {
-    try {
-      // Check if k6 is installed
-      execSync('k6 version', { stdio: 'pipe' });
-    } catch (error) {
-      console.error(chalk.red('❌ K6 is not installed or not in PATH'));
-      console.log(chalk.blue('💡 Install K6: https://k6.io/docs/getting-started/installation/'));
+    // Check and optionally install K6
+    const k6Available = await ensureK6Installed(true);
+    if (!k6Available) {
       throw new Error('K6 not found');
     }
 
@@ -233,7 +232,7 @@ export class SynapseRunner {
     }
   }
 
-  private async processComparison(config: SynapseConfig, outputDir: string): Promise<void> {
+  private async processComparison(config: SynapseConfig, outputDir: string, saveScreenshots?: boolean): Promise<void> {
     const resultsPath = path.join(outputDir, 'comparison-results.json');
     
     if (!fs.existsSync(resultsPath)) {
@@ -242,31 +241,46 @@ export class SynapseRunner {
       return;
     }
 
-    if (config.comparison!.type === 'image') {
-      console.log(chalk.blue('🖼️  Running detailed image comparison with pixelmatch...'));
+    if (config.comparison!.type === 'image' || config.comparison!.type === 'screenshot' || config.comparison!.type === 'visual-text') {
+      const typeLabel = config.comparison!.type === 'image' ? '🖼️  image' : 
+                        config.comparison!.type === 'screenshot' ? '📸 screenshot' : 
+                        '🔍 visual-text';
+      console.log(chalk.blue(`${typeLabel} Running detailed comparison...`));
+      
+      if (saveScreenshots) {
+        console.log(chalk.yellow('📁 Debug mode: Screenshots will be saved to output/screenshots/'));
+      }
       
       try {
-        const processor = new ComparisonPostProcessor(
-          config.comparison!.type,
-          config.comparison!.threshold
-        );
+        const processor = new ComparisonPostProcessor({
+          type: config.comparison!.type,
+          threshold: config.comparison!.threshold,
+          timeout: config.comparison!.timeout,
+          screenshot: config.comparison!.screenshot,
+          saveScreenshots: saveScreenshots,
+          outputDir: outputDir
+        });
         
         await processor.processResults(resultsPath, outputDir);
       } catch (error) {
-        console.log(chalk.yellow('⚠️  Detailed image comparison failed:'), error instanceof Error ? error.message : String(error));
-        console.log(chalk.blue('💡 Basic size comparison results are still available in CSV'));
+        console.log(chalk.yellow('⚠️  Detailed comparison failed:'), error instanceof Error ? error.message : String(error));
+        console.log(chalk.blue('💡 Basic comparison results are still available in CSV'));
       }
     } else {
       console.log(chalk.blue('📝 Text comparison completed during K6 execution'));
     }
   }
 
-  private async runComparisonOnly(config: SynapseConfig, outputDir: string): Promise<void> {
+  private async runComparisonOnly(config: SynapseConfig, outputDir: string, saveScreenshots?: boolean): Promise<void> {
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
     console.log(chalk.blue('🔧 Generating URLs for comparison...'));
+    
+    if (saveScreenshots) {
+      console.log(chalk.yellow('📁 Debug mode: Screenshots will be saved to output/screenshots/'));
+    }
     
     // Generate URLs using the same logic as K6 script
     const generator = new K6Generator(config);
@@ -279,7 +293,10 @@ export class SynapseRunner {
     const comparator = new Comparator({
       type: config.comparison!.type,
       threshold: config.comparison!.threshold,
-      timeout: config.comparison!.timeout
+      timeout: config.comparison!.timeout,
+      screenshot: config.comparison!.screenshot,
+      saveScreenshots: saveScreenshots,
+      outputDir: outputDir
     });
 
     const results = [];
@@ -336,14 +353,16 @@ export class SynapseRunner {
     return urls;
   }
 
-  private generateComparisonCsv(results: any[], type: 'image' | 'text'): string {
+  private generateComparisonCsv(results: any[], type: 'image' | 'text' | 'screenshot' | 'visual-text'): string {
     const baseHeaders = 'Row,URL1,URL2,Success,ResponseTime(ms),URL1_Status,URL2_Status,URL1_Size,URL2_Size';
     
     let specificHeaders = '';
-    if (type === 'image') {
-      specificHeaders = ',Width1,Height1,Width2,Height2,DiffPixels,Similarity%';
-    } else {
+    if (type === 'image' || type === 'screenshot') {
+      specificHeaders = ',Width1,Height1,Width2,Height2,DiffPixels,Similarity%,Screenshot1,Screenshot2';
+    } else if (type === 'text') {
       specificHeaders = ',TextMatch,Similarity%';
+    } else if (type === 'visual-text') {
+      specificHeaders = ',TextMatch,TextSimilarity%,Width1,Height1,Width2,Height2,ScreenshotDiffPixels,ScreenshotSimilarity%,VisualTextPassed,Screenshot1,Screenshot2';
     }
     
     const errorHeaders = ',Error,ErrorDetails';
@@ -353,10 +372,12 @@ export class SynapseRunner {
       const base = `${row},"${url1}","${url2}",${result.success},${result.responseTime},${result.url1Status},${result.url2Status},${result.url1Size || ''},${result.url2Size || ''}`;
       
       let specific = '';
-      if (type === 'image') {
-        specific = `,${result.width1 || ''},${result.height1 || ''},${result.width2 || ''},${result.height2 || ''},${result.diffPixels || ''},${result.similarity || ''}`;
-      } else {
-        specific = `,${result.textMatch || ''},${result.similarity || ''}`;
+      if (type === 'image' || type === 'screenshot') {
+        specific = `,${result.width1 || ''},${result.height1 || ''},${result.width2 || ''},${result.height2 || ''},${result.diffPixels || result.screenshotDiffPixels || ''},${result.similarity || result.screenshotSimilarity || ''},"${result.screenshot1Path || ''}","${result.screenshot2Path || ''}"`;
+      } else if (type === 'text') {
+        specific = `,${result.textMatch || ''},${result.similarity || result.textSimilarity || ''}`;
+      } else if (type === 'visual-text') {
+        specific = `,${result.textMatch || ''},${result.textSimilarity || ''},${result.width1 || ''},${result.height1 || ''},${result.width2 || ''},${result.height2 || ''},${result.screenshotDiffPixels || ''},${result.screenshotSimilarity || ''},${result.visualTextPassed || ''},"${result.screenshot1Path || ''}","${result.screenshot2Path || ''}"`;
       }
       
       const error = `,"${result.error || ''}","${result.errorDetails || ''}"`;
