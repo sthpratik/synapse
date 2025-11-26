@@ -1,6 +1,6 @@
 {
   "name": "synapse-surge",
-  "version": "1.1.0",
+  "version": "1.1.4",
   "description": "Dynamic load testing tool with screenshot comparison, visual-text validation, and intelligent version comparison using K6, Puppeteer, and Sharp",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,6 +9,7 @@
   },
   "files": [
     "dist/**/*",
+    "scripts/**/*",
     "examples/**/*",
     "README.md",
     "LICENSE"
@@ -17,6 +18,7 @@
     "build": "tsc",
     "dev": "ts-node src/cli.ts",
     "test": "jest",
+    "test:cli": "node dist/cli.js --version",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "docs": "docsify serve docs",
@@ -70,7 +72,7 @@
   "dependencies": {
     "@types/jpeg-js": "^0.3.0",
     "@types/sharp": "^0.31.1",
-    "chalk": "^5.6.2",
+    "chalk": "^4.1.2",
     "commander": "^14.0.2",
     "csv-parse": "^5.6.0",
     "csv-parser": "^3.0.0",

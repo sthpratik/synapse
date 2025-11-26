@@ -9,11 +9,12 @@ import { ConfigValidator } from './validators/configValidator';
 import { compareCommand } from './commands/compare.js';
 
 const program = new Command();
+const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf-8'));
 
 program
   .name('synapse')
   .description('Dynamic load testing tool using K6')
-  .version('1.1.0');
+  .version(packageJson.version);
 
 program
   .command('run')
