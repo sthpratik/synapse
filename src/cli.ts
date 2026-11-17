@@ -7,13 +7,16 @@ import chalk from 'chalk';
 import { SynapseRunner } from './runner';
 import { ConfigValidator } from './validators/configValidator';
 import { compareCommand } from './commands/compare.js';
+import { doctorCommand } from './commands/doctor.js';
+import { importCommand } from './commands/importCmd.js';
+import { ExitCode } from './utils/exitCodes';
 
 const program = new Command();
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf-8'));
 
 program
   .name('synapse')
-  .description('Dynamic load testing tool using K6')
+  .description(`Dynamic load testing + visual comparison (npm: ${packageJson.name})`)
   .version(packageJson.version);
 
 program
@@ -26,6 +29,7 @@ program
   .option('--compare', 'Run comparison if enabled in config')
   .option('--compare-only', 'Run only comparison (skip load test)')
   .option('--save-screenshots', 'Save screenshots during comparison (debug mode)')
+  .option('--fail-on-diff', 'Exit with code 3 when comparison thresholds fail (CI)')
   .action(async (options) => {
     try {
       console.log(chalk.blue('🔄 Starting Synapse Load Test...'));
@@ -33,7 +37,7 @@ program
       const configPath = path.resolve(options.config);
       if (!fs.existsSync(configPath)) {
         console.error(chalk.red(`❌ Configuration file not found: ${configPath}`));
-        process.exit(1);
+        process.exit(ExitCode.CONFIG_ERROR);
       }
 
       const runner = new SynapseRunner();
@@ -43,12 +47,13 @@ program
         keepScript: options.keepScript,
         enableComparison: options.compare,
         comparisonOnly: options.compareOnly,
-        saveScreenshots: options.saveScreenshots
+        saveScreenshots: options.saveScreenshots,
+        failOnDiff: options.failOnDiff
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(chalk.red('❌ Error:'), error instanceof Error ? error.message : error);
-      process.exit(1);
+      process.exit(error?.exitCode || ExitCode.GENERAL_ERROR);
     }
   });
 
@@ -71,11 +76,11 @@ program
         console.log(chalk.green('✅ Configuration is valid'));
       } else {
         console.error(chalk.red('❌ Configuration validation failed'));
-        process.exit(1);
+        process.exit(ExitCode.CONFIG_ERROR);
       }
     } catch (error) {
       console.error(chalk.red('❌ Error:'), error instanceof Error ? error.message : error);
-      process.exit(1);
+      process.exit(ExitCode.CONFIG_ERROR);
     }
   });
 
@@ -374,7 +379,9 @@ program
     }
   });
 
-// Add compare command
+// Add compare / import / doctor commands
 program.addCommand(compareCommand);
+program.addCommand(importCommand);
+program.addCommand(doctorCommand);
 
 program.parse();

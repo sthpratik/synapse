@@ -15,8 +15,13 @@ Synapse is a powerful command-line tool that generates K6 load testing scripts f
 - **Performance Metrics** - Comprehensive load testing results
 - **CLI Interface** - Easy-to-use command-line interface
 - **MCP Integration** - Natural language load testing through LLM conversations
-- **🆕 Image/Text Comparison** - Compare responses between different versions/environments
-- **🆕 Standalone Comparison** - Direct CSV-based image/text comparison tool
+- **Image/Text/Screenshot Comparison** - Compare responses between versions/environments
+- **HTML reports & diff images** - Visual CI artifacts for every comparison run
+- **Auth + JSON bodies + checks** - Bearer/Basic/API key, `request.json`, K6 checks
+- **OpenAPI / HAR import** - `synapse import --openapi` / `--har`
+- **CI & Docker** - GitHub Action workflow, Dockerfile, stable exit codes (`--fail-on-diff`)
+- **Screenshot masks & multi-viewport** - Ignore dynamic regions; desktop + mobile in one run
+- **MCP Integration** - Load test, compare, import, validate, doctor from LLM tools
 
 ## 📦 Installation
 
@@ -26,14 +31,18 @@ Synapse is a powerful command-line tool that generates K6 load testing scripts f
 
 ### Global Installation (Recommended)
 
+The npm package name is **`synapse-surge`**; the CLI binary is **`synapse`**.
+
 ```bash
-npm install -g synapse
+npm install -g synapse-surge
+synapse --version
+synapse doctor
 ```
 
 ### Local Installation
 
 ```bash
-npm install synapse
+npm install synapse-surge
 npx synapse --help
 ```
 
@@ -345,6 +354,23 @@ Compare images or text from CSV file:
 
 ```bash
 synapse compare --file urls.csv --type image --column1 url1 --column2 url2
+synapse compare --file urls.csv --type screenshot --fail-on-diff --mask ".ad"
+```
+
+### `synapse import`
+Create config from OpenAPI or HAR:
+
+```bash
+synapse import --openapi ./openapi.yaml -o synapse.yml
+synapse import --har ./capture.har --csv ./urls.csv
+```
+
+### `synapse doctor`
+Verify Node, K6, Puppeteer, and Sharp are available:
+
+```bash
+synapse doctor
+synapse doctor --json
 ```
 
 Options:

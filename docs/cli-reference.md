@@ -23,6 +23,7 @@ synapse run [options]
 | `--compare` | Run comparison if enabled | - |
 | `--compare-only` | Run only comparison (skip load test) | - |
 | `--save-screenshots` | Save screenshots during comparison | - |
+| `--fail-on-diff` | Exit code 3 when comparison thresholds fail | - |
 
 **Examples:**
 
@@ -174,7 +175,25 @@ synapse init [options]
 **Example:**
 
 ```bash
-synapse init --name "API Test" --url "https://api.example.com"
+synapse init --name "API Test" --url "https://api.example.com" --type screenshot
+```
+
+### `synapse import`
+
+Import OpenAPI or HAR into a Synapse config.
+
+```bash
+synapse import --openapi ./openapi.yaml -o synapse.yml
+synapse import --har ./capture.har --csv ./urls.csv
+```
+
+### `synapse doctor`
+
+Check local dependencies.
+
+```bash
+synapse doctor
+synapse doctor --json
 ```
 
 ## Global Options
@@ -189,13 +208,17 @@ synapse init --name "API Test" --url "https://api.example.com"
 | Code | Description |
 |------|-------------|
 | 0 | Success |
-| 1 | Error (validation, execution, etc.) |
+| 1 | General / K6 error |
+| 2 | Configuration error |
+| 3 | Comparison failed (`--fail-on-diff`) |
+| 4 | Required dependency missing |
 
 ## Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `K6_BROWSER_ENABLED` | Enable K6 browser | `true` |
+| `PUPPETEER_EXECUTABLE_PATH` | Chromium binary for screenshots | puppeteer bundled |
+| `K6_BROWSER_ENABLED` | Legacy K6 browser flag | `true` |
 
 ## Examples
 

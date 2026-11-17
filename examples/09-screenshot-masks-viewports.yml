@@ -1,0 +1,35 @@
+name: "Multi-viewport screenshot with masks"
+description: "Ignore dynamic regions and compare desktop + mobile"
+baseUrl: "https://example.com"
+
+execution:
+  mode: "construct"
+  concurrent: 1
+  iterations: 2
+
+comparison:
+  enabled: true
+  type: "screenshot"
+  baseUrl2: "https://example.com"
+  threshold: 0.1
+  minSimilarity: 95
+  failOnDiff: true
+  reportFormat: "html"
+  screenshot:
+    fullPage: true
+    waitUntil: "networkidle"
+    waitForSelector: "h1"
+    masks:
+      - ".advertisement"
+      - "#timestamp"
+    viewports:
+      - name: "mobile"
+        width: 390
+        height: 844
+      - name: "desktop"
+        width: 1440
+        height: 900
+
+k6Options:
+  thresholds:
+    http_req_duration: ["p(95)<3000"]

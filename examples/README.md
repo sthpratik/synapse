@@ -13,6 +13,8 @@ Complete example configurations with detailed comments.
 | [05-mobile-screenshot.yml](05-mobile-screenshot.yml) | Screenshot | Mobile UI testing | `synapse run --config 05-mobile-screenshot.yml --compare-only --save-screenshots` |
 | [06-batch-mode.yml](06-batch-mode.yml) | Batch | URL list testing | `synapse run --config 06-batch-mode.yml --compare --save-screenshots` |
 | [07-advanced-parameters.yml](07-advanced-parameters.yml) | Advanced | All parameter types | `synapse run --config 07-advanced-parameters.yml --compare` |
+| [08-auth-json-checks.yml](08-auth-json-checks.yml) | Auth/API | Bearer + JSON + checks | `synapse run --config 08-auth-json-checks.yml --dry-run` |
+| [09-screenshot-masks-viewports.yml](09-screenshot-masks-viewports.yml) | Screenshot | Masks + multi-viewport | `synapse run --config 09-screenshot-masks-viewports.yml --compare-only --fail-on-diff` |
 
 ## Example Details
 
