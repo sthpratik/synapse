@@ -22,6 +22,4 @@ fi
 
 npm ci
 
-if [[ -d mcp-server ]]; then
-  (cd mcp-server && npm ci && npm run build)
-fi
+# MCP server lockfile pins a private registry; use `npm run mcp:build` after regenerating mcp-server/package-lock.json if needed.
