@@ -11,6 +11,8 @@ Synapse generates different files depending on the mode and configuration:
 | **Load Test Results** | Always (when running K6) | Performance metrics |
 | **Basic Comparison** | Load test with `--compare` | Quick size-based comparison |
 | **Detailed Comparison** | Post-processing with pixelmatch/Sharp | Accurate image analysis |
+| **HTML Report** | Comparison runs | Browser-friendly summary with previews |
+| **Diff PNGs** | Image/screenshot mismatches | Pixel diff under `output/diffs/` |
 | **Summary Reports** | Comparison enabled | Statistical summaries |
 
 ## Load Test Output Files

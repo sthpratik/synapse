@@ -1,0 +1,37 @@
+name: "Authenticated JSON API"
+description: "Bearer auth, JSON body, and response checks"
+baseUrl: "https://jsonplaceholder.typicode.com/posts"
+
+execution:
+  mode: "construct"
+  concurrent: 5
+  iterations: 20
+  thinkTime: 0.5
+
+auth:
+  type: "bearer"
+  token: "demo-token"
+
+parameters:
+  - name: "userId"
+    type: "integer"
+    min: 1
+    max: 10
+
+request:
+  method: "POST"
+  json:
+    title: "synapse"
+    body: "load test"
+    userId: 1
+  checks:
+    - status: 201
+      name: "created"
+    - jsonPath: "id"
+      name: "has id"
+    - maxDuration: 2000
+
+k6Options:
+  thresholds:
+    http_req_duration: ["p(95)<2000"]
+    checks: ["rate>0.95"]

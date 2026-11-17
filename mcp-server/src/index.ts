@@ -9,7 +9,6 @@ import {
 import { execSync } from 'child_process';
 import { z } from 'zod';
 
-// Tool schemas
 const RunLoadTestSchema = z.object({
   url: z.string().url('Must be a valid URL'),
   concurrent: z.number().int().min(1).max(1000),
@@ -24,14 +23,16 @@ const CreateConfigSchema = z.object({
   url: z.string().url(),
   concurrent: z.number().int().min(1).max(1000).optional(),
   iterations: z.number().int().min(1).max(100000).optional(),
+  type: z.enum(['basic', 'screenshot', 'visual-text', 'image', 'text', 'mobile', 'batch', 'advanced']).optional(),
   parameters: z.array(z.object({
     name: z.string(),
-    type: z.enum(['integer', 'string', 'array', 'csv']),
+    type: z.enum(['integer', 'string', 'array', 'csv', 'static', 'url']),
     min: z.number().optional(),
     max: z.number().optional(),
     values: z.array(z.union([z.string(), z.number()])).optional(),
     file: z.string().optional(),
     column: z.string().optional(),
+    value: z.union([z.string(), z.number()]).optional(),
   })).optional(),
 });
 
@@ -42,7 +43,7 @@ class SynapseMCPServer {
     this.server = new Server(
       {
         name: 'synapse-mcp-server',
-        version: '1.0.0',
+        version: '1.2.0',
       },
       {
         capabilities: {
@@ -63,79 +64,44 @@ class SynapseMCPServer {
           inputSchema: {
             type: 'object',
             properties: {
-              url: {
-                type: 'string',
-                format: 'uri',
-                description: 'Target URL to test',
-              },
-              concurrent: {
-                type: 'number',
-                minimum: 1,
-                maximum: 1000,
-                description: 'Number of concurrent users',
-              },
-              requests: {
-                type: 'number',
-                minimum: 1,
-                maximum: 100000,
-                description: 'Total number of requests to make',
-              },
-              output: {
-                type: 'string',
-                description: 'Output directory for results (optional)',
-              },
-              dryRun: {
-                type: 'boolean',
-                description: 'Generate script without running (optional)',
-              },
-              keepScript: {
-                type: 'boolean',
-                description: 'Keep generated K6 script (optional)',
-              },
+              url: { type: 'string', format: 'uri', description: 'Target URL to test' },
+              concurrent: { type: 'number', minimum: 1, maximum: 1000, description: 'Number of concurrent users' },
+              requests: { type: 'number', minimum: 1, maximum: 100000, description: 'Total number of requests to make' },
+              output: { type: 'string', description: 'Output directory for results (optional)' },
+              dryRun: { type: 'boolean', description: 'Generate script without running (optional)' },
+              keepScript: { type: 'boolean', description: 'Keep generated K6 script (optional)' },
             },
             required: ['url', 'concurrent', 'requests'],
           },
         },
         {
           name: 'create_config',
-          description: 'Create a Synapse configuration file for advanced load testing',
+          description: 'Create a Synapse configuration file (optionally from a template type)',
           inputSchema: {
             type: 'object',
             properties: {
-              name: {
+              name: { type: 'string', description: 'Test name' },
+              url: { type: 'string', format: 'uri', description: 'Base URL for testing' },
+              concurrent: { type: 'number', minimum: 1, maximum: 1000 },
+              iterations: { type: 'number', minimum: 1, maximum: 100000 },
+              type: {
                 type: 'string',
-                description: 'Test name',
-              },
-              url: {
-                type: 'string',
-                format: 'uri',
-                description: 'Base URL for testing',
-              },
-              concurrent: {
-                type: 'number',
-                minimum: 1,
-                maximum: 1000,
-                description: 'Number of concurrent users (optional)',
-              },
-              iterations: {
-                type: 'number',
-                minimum: 1,
-                maximum: 100000,
-                description: 'Total iterations (optional)',
+                enum: ['basic', 'screenshot', 'visual-text', 'image', 'text', 'mobile', 'batch', 'advanced'],
+                description: 'Init template type',
               },
               parameters: {
                 type: 'array',
-                description: 'Dynamic parameters for URL construction (optional)',
                 items: {
                   type: 'object',
                   properties: {
                     name: { type: 'string' },
-                    type: { type: 'string', enum: ['integer', 'string', 'array', 'csv'] },
+                    type: { type: 'string', enum: ['integer', 'string', 'array', 'csv', 'static', 'url'] },
                     min: { type: 'number' },
                     max: { type: 'number' },
                     values: { type: 'array' },
                     file: { type: 'string' },
                     column: { type: 'string' },
+                    value: {},
                   },
                   required: ['name', 'type'],
                 },
@@ -150,18 +116,11 @@ class SynapseMCPServer {
           inputSchema: {
             type: 'object',
             properties: {
-              config: {
-                type: 'string',
-                description: 'Path to configuration file (default: synapse.yml)',
-              },
-              output: {
-                type: 'string',
-                description: 'Output directory (optional)',
-              },
-              dryRun: {
-                type: 'boolean',
-                description: 'Generate script without running (optional)',
-              },
+              config: { type: 'string', description: 'Path to configuration file (default: synapse.yml)' },
+              output: { type: 'string' },
+              dryRun: { type: 'boolean' },
+              compare: { type: 'boolean', description: 'Enable comparison post-processing' },
+              failOnDiff: { type: 'boolean', description: 'Fail when comparison thresholds miss' },
             },
           },
         },
@@ -171,12 +130,64 @@ class SynapseMCPServer {
           inputSchema: {
             type: 'object',
             properties: {
-              config: {
-                type: 'string',
-                description: 'Path to configuration file to validate',
-              },
+              config: { type: 'string', description: 'Path to configuration file to validate' },
             },
             required: ['config'],
+          },
+        },
+        {
+          name: 'compare_urls',
+          description: 'Compare URL pairs from a CSV file (image/text/screenshot/visual-text)',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              file: { type: 'string', description: 'CSV path with url1,url2 columns' },
+              type: { type: 'string', enum: ['image', 'text', 'screenshot', 'visual-text'] },
+              output: { type: 'string' },
+              failOnDiff: { type: 'boolean' },
+              saveScreenshots: { type: 'boolean' },
+            },
+            required: ['file'],
+          },
+        },
+        {
+          name: 'import_spec',
+          description: 'Import OpenAPI or HAR into synapse.yml',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              openapi: { type: 'string', description: 'Path to OpenAPI file' },
+              har: { type: 'string', description: 'Path to HAR file' },
+              output: { type: 'string' },
+              name: { type: 'string' },
+            },
+          },
+        },
+        {
+          name: 'doctor',
+          description: 'Check Synapse dependencies (Node, K6, Puppeteer, Sharp)',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              json: { type: 'boolean' },
+            },
+          },
+        },
+        {
+          name: 'init_config',
+          description: 'Initialize a Synapse config from a built-in template',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              url: { type: 'string' },
+              type: {
+                type: 'string',
+                enum: ['basic', 'screenshot', 'visual-text', 'image', 'text', 'mobile', 'batch', 'advanced'],
+              },
+              output: { type: 'string' },
+            },
+            required: ['url'],
           },
         },
       ],
@@ -195,6 +206,14 @@ class SynapseMCPServer {
             return await this.runConfigTest(args);
           case 'validate_config':
             return await this.validateConfig(args);
+          case 'compare_urls':
+            return await this.compareUrls(args);
+          case 'import_spec':
+            return await this.importSpec(args);
+          case 'doctor':
+            return await this.doctor(args);
+          case 'init_config':
+            return await this.initConfig(args);
           default:
             throw new Error(`Unknown tool: ${name}`);
         }
@@ -211,33 +230,34 @@ class SynapseMCPServer {
     });
   }
 
+  private run(command: string, timeout = 300000) {
+    const output = execSync(command, { encoding: 'utf8', timeout });
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Success!\n\nCommand: ${command}\n\nOutput:\n${output}`,
+        },
+      ],
+    };
+  }
+
   private async runLoadTest(args: any) {
     const params = RunLoadTestSchema.parse(args);
-    
     let command = `synapse test --url "${params.url}" --concurrent ${params.concurrent} --requests ${params.requests}`;
-    
     if (params.output) command += ` --output "${params.output}"`;
     if (params.dryRun) command += ' --dry-run';
     if (params.keepScript) command += ' --keep-script';
-
-    try {
-      const output = execSync(command, { encoding: 'utf8', timeout: 300000 });
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Load test completed successfully!\n\nCommand: ${command}\n\nOutput:\n${output}`,
-          },
-        ],
-      };
-    } catch (error: any) {
-      throw new Error(`Load test failed: ${error.message}\nCommand: ${command}`);
-    }
+    return this.run(command);
   }
 
   private async createConfig(args: any) {
     const params = CreateConfigSchema.parse(args);
-    
+    if (params.type) {
+      let command = `synapse init --name "${params.name}" --url "${params.url}" --type ${params.type}`;
+      return this.run(command, 60000);
+    }
+
     const config = {
       name: params.name,
       baseUrl: params.url,
@@ -253,62 +273,55 @@ class SynapseMCPServer {
     };
 
     const yamlContent = this.objectToYaml(config);
-    
-    try {
-      const fs = require('fs');
-      fs.writeFileSync('synapse.yml', yamlContent);
-      
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Configuration file created successfully!\n\nFile: synapse.yml\n\nContent:\n${yamlContent}`,
-          },
-        ],
-      };
-    } catch (error: any) {
-      throw new Error(`Failed to create config file: ${error.message}`);
-    }
+    const fs = require('fs');
+    fs.writeFileSync('synapse.yml', yamlContent);
+    return {
+      content: [{ type: 'text', text: `Configuration file created!\n\nFile: synapse.yml\n\n${yamlContent}` }],
+    };
   }
 
   private async runConfigTest(args: any) {
     let command = 'synapse run';
-    
     if (args.config) command += ` --config "${args.config}"`;
     if (args.output) command += ` --output "${args.output}"`;
     if (args.dryRun) command += ' --dry-run';
-
-    try {
-      const output = execSync(command, { encoding: 'utf8', timeout: 300000 });
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Configuration-based load test completed!\n\nCommand: ${command}\n\nOutput:\n${output}`,
-          },
-        ],
-      };
-    } catch (error: any) {
-      throw new Error(`Config test failed: ${error.message}\nCommand: ${command}`);
-    }
+    if (args.compare) command += ' --compare';
+    if (args.failOnDiff) command += ' --fail-on-diff';
+    return this.run(command);
   }
 
   private async validateConfig(args: any) {
-    const command = `synapse validate --config "${args.config}"`;
+    return this.run(`synapse validate --config "${args.config}"`, 60000);
+  }
 
-    try {
-      const output = execSync(command, { encoding: 'utf8' });
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Configuration validation successful!\n\nCommand: ${command}\n\nOutput:\n${output}`,
-          },
-        ],
-      };
-    } catch (error: any) {
-      throw new Error(`Validation failed: ${error.message}\nCommand: ${command}`);
-    }
+  private async compareUrls(args: any) {
+    let command = `synapse compare --file "${args.file}"`;
+    if (args.type) command += ` --type ${args.type}`;
+    if (args.output) command += ` --output "${args.output}"`;
+    if (args.failOnDiff) command += ' --fail-on-diff';
+    if (args.saveScreenshots) command += ' --save-screenshots';
+    return this.run(command);
+  }
+
+  private async importSpec(args: any) {
+    let command = 'synapse import';
+    if (args.openapi) command += ` --openapi "${args.openapi}"`;
+    if (args.har) command += ` --har "${args.har}"`;
+    if (args.output) command += ` --output "${args.output}"`;
+    if (args.name) command += ` --name "${args.name}"`;
+    return this.run(command, 60000);
+  }
+
+  private async doctor(args: any) {
+    return this.run(`synapse doctor${args?.json ? ' --json' : ''}`, 60000);
+  }
+
+  private async initConfig(args: any) {
+    let command = `synapse init --url "${args.url}"`;
+    if (args.name) command += ` --name "${args.name}"`;
+    if (args.type) command += ` --type ${args.type}`;
+    if (args.output) command += ` --output "${args.output}"`;
+    return this.run(command, 60000);
   }
 
   private objectToYaml(obj: any, indent = 0): string {
@@ -317,7 +330,7 @@ class SynapseMCPServer {
 
     for (const [key, value] of Object.entries(obj)) {
       if (value === null || value === undefined) continue;
-      
+
       if (Array.isArray(value)) {
         yaml += `${spaces}${key}:\n`;
         for (const item of value) {
@@ -337,7 +350,7 @@ class SynapseMCPServer {
     return yaml;
   }
 
-  async run() {
+  async runServer() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
     console.error('Synapse MCP server running on stdio');
@@ -345,4 +358,4 @@ class SynapseMCPServer {
 }
 
 const server = new SynapseMCPServer();
-server.run().catch(console.error);
+server.runServer().catch(console.error);

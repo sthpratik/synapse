@@ -4,13 +4,17 @@ export class UrlConstructor {
   constructor(private config: SynapseConfig) {}
 
   constructUrl(parameters: GeneratedParameter[]): string {
+    // Prefer path-placeholder aware construction so {id} templates work
+    if (this.config.baseUrl.includes('{')) {
+      return this.constructUrlWithPathParams(parameters);
+    }
+
     const url = new URL(this.config.baseUrl);
-    
-    // Add parameters as query parameters
+
     parameters.forEach(param => {
       url.searchParams.append(param.name, param.value.toString());
     });
-    
+
     return url.toString();
   }
 

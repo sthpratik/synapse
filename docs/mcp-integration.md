@@ -58,8 +58,12 @@ Use the command: `node /path/to/synapse/mcp-server/dist/index.js`
 |------|-------------|----------|
 | `run_load_test` | Simple load testing | Quick API testing |
 | `create_config` | Generate configuration files | Advanced test setups |
-| `run_config_test` | Run from config files | Complex scenarios |
+| `init_config` | Init from built-in templates | Screenshot/API starters |
+| `run_config_test` | Run from config files | Complex scenarios + compare |
 | `validate_config` | Validate configurations | Error checking |
+| `compare_urls` | CSV image/text/screenshot compare | Visual regression |
+| `import_spec` | OpenAPI / HAR → synapse.yml | Bootstrap from specs |
+| `doctor` | Dependency health check | Environment setup |
 
 ## Example Conversations
 

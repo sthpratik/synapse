@@ -19,6 +19,7 @@ execution:
   concurrent: 10
   iterations: 100
   duration: "30s"
+  thinkTime: 1
 
 # K6 specific options
 k6Options:
@@ -64,20 +65,32 @@ batch:
   file: "./data/test-urls.csv"
   column: "url"
 
+# Auth (optional)
+auth:
+  type: "bearer"   # bearer | basic | apiKey
+  token: "YOUR_TOKEN"
+
 # HTTP request configuration
 request:
-  method: "GET"
+  method: "POST"
   headers:
-    "Content-Type": "application/json"
-  body: |
-    {
-      "data": "test"
-    }
+    "X-Custom": "1"
+  json:
+    data: "test"
+  checks:
+    - status: 201
+    - jsonPath: id
+    - maxDuration: 1000
 
 # Comparison configuration (optional)
 comparison:
   enabled: true
-  type: "image"  # or "text"
+  type: "screenshot"  # image | text | screenshot | visual-text
+  failOnDiff: true
+  minSimilarity: 95
+  normalizeJson: true
+  ignoreJsonPaths: ["meta.timestamp"]
+  reportFormat: "html"
   baseUrl2: "https://v2.api.example.com"
   threshold: 0.1
   timeout: 30000

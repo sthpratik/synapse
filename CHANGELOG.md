@@ -2,6 +2,35 @@
 
 All notable changes to Synapse will be documented in this file.
 
+## [1.2.0] - 2026-03-23
+
+### New Features
+- **HTML comparison reports** with screenshot and diff image previews
+- **Diff PNG output** under `output/diffs/` when pixels differ
+- **`synapse import`** for OpenAPI 3 / Swagger 2 and HAR → `synapse.yml`
+- **`synapse doctor`** dependency checks (Node, K6, Puppeteer, Sharp)
+- **Auth profiles**: `bearer`, `basic`, `apiKey` (header or query)
+- **`request.json`** bodies and structured **`request.checks`** in generated K6
+- **Path parameters** via `parameters[].in: path` and `{placeholders}` in `baseUrl`
+- **Screenshot enhancements**: `masks`, `selector`, `fullPage`, `waitForSelector`, multi-`viewports`
+- **CI helpers**: `--fail-on-diff`, stable exit codes, GitHub Action workflow, Dockerfile
+- **JSON text compare**: `normalizeJson`, `ignoreJsonPaths`, `minSimilarity`, `failOnDiff`
+- **MCP tools**: `compare_urls`, `import_spec`, `doctor`, `init_config` (+ compare flags on run)
+
+### Improvements
+- Documented npm package name `synapse-surge` vs CLI `synapse`
+- Construct mode may omit parameters (hits `baseUrl` only)
+- Comparison CSV/HTML include `PassedThreshold`, viewport, and diff paths
+- Broader unit tests for auth, importers, generator, validator, comparison, HTML
+
+### Installation
+```bash
+npm install -g synapse-surge@1.2.0
+synapse doctor
+```
+
+---
+
 ## [1.1.0] - 2025-11-26
 
 ### 🎉 New Features

@@ -1,7 +1,7 @@
 {
   "name": "synapse-surge",
-  "version": "1.1.4",
-  "description": "Dynamic load testing tool with screenshot comparison, visual-text validation, and intelligent version comparison using K6, Puppeteer, and Sharp",
+  "version": "1.2.0",
+  "description": "Dynamic load testing + visual comparison (YAML→K6). Install: npm i -g synapse-surge · CLI: synapse",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
